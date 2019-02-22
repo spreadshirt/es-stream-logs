@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from datetime import datetime
+import json
 import os
 import time
 
@@ -44,11 +45,16 @@ GET /logs - stream logs from elasticsearch
     - q: elastic search query string query
         (See https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax)
 
+    - fmt: "text" or "json"
+      defaults to "text", "json" outputs one log entry per line as a json object
+    - fields: if fmt is "json", output only the given fields
+
   Examples:
 
     - /logs?application_name=all&level=ERROR
     - /logs?application_name=api&level=ERROR,WARN
     - /logs?application_name=all&level=INFO&q=password
+    - /logs?application_name=all&level=INFO&q=password&fmt=json&fields=@timestamp,hostname,message,stack_trace
     </pre>
 </body>
     """
@@ -59,9 +65,13 @@ def stream_logs():
     def now_ms():
         return int(datetime.utcnow().timestamp()*1000)
 
-    def results(application_name, log_levels, query):
+    def results(application_name, log_levels, query, fmt, json_fields):
+        if json_fields != "all":
+            json_fields = json_fields.split(',')
+
         last_timestamp = now_ms() - 5*60*1000
         seen = {}
+
         while True:
             now = now_ms()
 
@@ -97,16 +107,22 @@ def stream_logs():
                 ts = int(datetime.strptime(source['@timestamp'], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()*1000)
                 last_timestamp = max(ts, last_timestamp)
 
-                try:
-                    yield f"{source['@timestamp']} -- [{source.get('hostname', '<no-hostname>')}] {source['message']}"
-                    if 'thread_name' in source:
-                        yield f": {source['thread_name']}"
-                    if 'stack_trace' in source:
-                        yield f"\n{source['stack_trace']}"
+                if fmt == "json":
+                    if json_fields != "all":
+                        source = { key: source[key] for key in json_fields if key in source }
+                    yield json.dumps(source)
                     yield "\n"
-                except KeyError as e:
-                    print(e)
-                    yield source
+                else:
+                    try:
+                        yield f"{source['@timestamp']} -- [{source.get('hostname', '<no-hostname>')}] {source['message']}"
+                        if 'thread_name' in source:
+                            yield f": {source['thread_name']}"
+                        if 'stack_trace' in source:
+                            yield f"\n{source['stack_trace']}"
+                        yield "\n"
+                    except KeyError as e:
+                        print(e)
+                        yield source
             seen = last_seen
 
             time.sleep(1)
@@ -114,6 +130,8 @@ def stream_logs():
     application_name = request.args.get('application_name') or 'api'
     log_level = request.args.get('level') or 'ERROR'
     query = request.args.get('q')
-    return Response(results(application_name, log_level, query), content_type='text/plain')
+    fmt = request.args.get('fmt') or 'text'
+    json_fields = request.args.get('fields') or 'all'
+    return Response(results(application_name, log_level, query, fmt, json_fields), content_type='text/plain')
 
 app.run(host='localhost', port=12345)
