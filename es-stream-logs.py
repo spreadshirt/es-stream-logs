@@ -8,7 +8,7 @@ import time
 from elasticsearch import Elasticsearch
 #from elasticsearch_dsl import Search
 
-from flask import Flask, Response
+from flask import Flask, Response, request
 
 user = os.environ['ES_USER']
 password = os.environ['ES_PASSWORD']
@@ -26,7 +26,7 @@ def stream_logs():
     def now_ms():
         return int(datetime.utcnow().timestamp()*1000)
 
-    def results():
+    def results(application_name, log_level):
         last_timestamp = now_ms() - 5*60*1000
         seen = {}
         while True:
@@ -40,8 +40,8 @@ def stream_logs():
                         "query": {
                             "bool": {
                                 "must": [
-                                    {"match_phrase": { "level": {"query": "ERROR" } } },
-                                    {"match_phrase": { "application_name": { "query": "api" } } },
+                                    {"match_phrase": { "level": {"query": log_level } } },
+                                    {"match_phrase": { "application_name": { "query": application_name } } },
                                     { "range": { "@timestamp": { "gte": last_timestamp, "lt": now, "format": "epoch_millis" } } }
                                     ],
                                 }
@@ -73,6 +73,8 @@ def stream_logs():
 
             time.sleep(1)
 
-    return Response(results(), content_type='text/plain')
+    application_name = request.args.get('application_name') or 'api'
+    log_level = request.args.get('level') or 'ERROR'
+    return Response(results(application_name, log_level), content_type='text/plain')
 
 app.run(host='localhost', port=12345)
