@@ -44,7 +44,11 @@ GET /logs - stream logs from elasticsearch
 
   Parameters:
 
-    - dc: "dc1" or "dc3"
+    - dc: "dc1", "dc3" or "dc2"
+      defaults to "dc1"
+    - index: index to query (might not work, try application_name=all&level=all)
+      defaults to "application-*"
+
     - application_name: "api", "api,login", "all"
       defaults to "api"
     - level: "ERROR", "WARN,ERROR"
@@ -75,39 +79,49 @@ def stream_logs():
     def now_ms():
         return int(datetime.utcnow().timestamp()*1000)
 
-    def results(es, index,
-            application_name, log_levels, query,
-            offset_seconds, fmt, json_fields):
-        if json_fields != "all":
-            json_fields = json_fields.split(',')
+    def results(es, dc='dc1', index="application-*",
+            application_name="api", level="ERROR", q=None,
+            offset_seconds=300, fmt="text", fields="all", **kwargs):
+        if fields != "all":
+            fields = fields.split(',')
 
         last_timestamp = now_ms() - offset_seconds*1000
         seen = {}
 
+        required_filters = []
+        if index == "application-*":
+            if level != "all":
+                levels_query = { "bool" : { "should": [{"term": {"level": l}} for l in level.split(',')]}}
+                required_filters.append(levels_query)
+            if application_name != "all":
+                application_names_query = { "bool" : { "should": [{"term": {"application_name": app}} for app in application_name.split(',')]}}
+                required_filters.append(application_names_query)
+        if q:
+            required_filters.append({"query_string": {"query": q}})
+
+        for key, val in kwargs.items():
+            required_filters.append({ "bool" : { "should": [{"term": {key: v}} for v in val.split(',')]}})
+
+        # send something so we return an initial response
         yield ""
 
         while True:
             now = now_ms()
 
-            musts = []
-            levels_query = { "bool" : { "should": [{"term": {"level": l}} for l in log_levels.split(',')]}}
-            if log_levels != "all":
-                musts.append(levels_query)
-            application_names_query = { "bool" : { "should": [{"term": {"application_name": app}} for app in application_name.split(',')]}}
-            if application_name != "all":
-                musts.append(application_names_query)
-            if query:
-                musts.append({"query_string": {"query": query}})
             timerange = { "range": { "@timestamp": { "gte": last_timestamp, "lt": now, "format": "epoch_millis" } } }
-            musts.append(timerange)
-            resp = es.search(index=index,
-                    body={
-                        "size": 100,
-                        "sort": [{"@timestamp":{"order": "asc"}}],
-                        "query": {
-                            "bool": { "must": musts }
-                        }
-                    })
+            try:
+                resp = es.search(index=index,
+                        body={
+                            "size": 100,
+                            "sort": [{"@timestamp":{"order": "asc"}}],
+                            "query": {
+                                "bool": { "must": [*required_filters, timerange] }
+                                }
+                            })
+            except elasticsearch.ConnectionTimeout as e:
+                print(e)
+                time.sleep(1)
+                continue
 
             last_seen = {}
             i = 0
@@ -123,8 +137,8 @@ def stream_logs():
                 last_timestamp = max(ts, last_timestamp)
 
                 if fmt == "json":
-                    if json_fields != "all":
-                        source = { key: source[key] for key in json_fields if key in source }
+                    if fields != "all":
+                        source = { key: source[key] for key in fields if key in source }
                     yield json.dumps(source)
                 else:
                     try:
@@ -151,14 +165,7 @@ def stream_logs():
     else:
         abort(400, f"unknown datacenter '{dc}'")
 
-    index = request.args.get('index') or 'application-*'
-    application_name = request.args.get('application_name') or 'api'
-    log_level = request.args.get('level') or 'ERROR'
-    query = request.args.get('q')
-    offset_seconds = int(request.args.get('offset_seconds') or 5*60)
-    fmt = request.args.get('fmt') or 'text'
-    json_fields = request.args.get('fields') or 'all'
-    return Response(results(es, index, application_name, log_level, query, offset_seconds, fmt, json_fields), content_type='text/plain')
+    return Response(results(es, **request.args), content_type='text/plain')
 
 host = 'localhost'
 port = 12345
