@@ -122,7 +122,7 @@ def stream_logs():
                 else:
                     try:
                         hostname = source.get('hostname', source.get('HOSTNAME', '<no-hostname>'))
-                        yield f"{source['@timestamp']} -- [{hostname}] {source['message']}"
+                        yield f"{source['@timestamp']} -- {source['level']} [{hostname}] {source['message']}"
                         if 'thread_name' in source:
                             yield f": {source['thread_name']}"
                         if 'stack_trace' in source:
