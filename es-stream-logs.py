@@ -7,9 +7,8 @@ import sys
 import time
 
 from elasticsearch import Elasticsearch
-#from elasticsearch_dsl import Search
 
-from flask import Flask, Response, request
+from flask import Flask, Response, abort, request
 
 user = os.environ['ES_USER']
 password = os.environ['ES_PASSWORD']
@@ -19,6 +18,9 @@ es_dc1.info()
 
 es_dc3 = Elasticsearch(['https://elasticsearch-dc3.example.com:443'], http_auth=(user, password))
 es_dc3.info()
+
+es_dc2 = Elasticsearch(['https://elasticsearch-dc2.example.com:443'], http_auth=(user, password))
+es_dc2.info()
 
 app = Flask(__name__)
 
@@ -73,19 +75,24 @@ def stream_logs():
     def now_ms():
         return int(datetime.utcnow().timestamp()*1000)
 
-    def results(es, application_name, log_levels, query, offset_seconds, fmt, json_fields):
+    def results(es, index,
+            application_name, log_levels, query,
+            offset_seconds, fmt, json_fields):
         if json_fields != "all":
             json_fields = json_fields.split(',')
 
         last_timestamp = now_ms() - offset_seconds*1000
         seen = {}
 
+        yield ""
+
         while True:
             now = now_ms()
 
             musts = []
             levels_query = { "bool" : { "should": [{"term": {"level": l}} for l in log_levels.split(',')]}}
-            musts.append(levels_query)
+            if log_levels != "all":
+                musts.append(levels_query)
             application_names_query = { "bool" : { "should": [{"term": {"application_name": app}} for app in application_name.split(',')]}}
             if application_name != "all":
                 musts.append(application_names_query)
@@ -93,9 +100,9 @@ def stream_logs():
                 musts.append({"query_string": {"query": query}})
             timerange = { "range": { "@timestamp": { "gte": last_timestamp, "lt": now, "format": "epoch_millis" } } }
             musts.append(timerange)
-            resp = es.search(index="application-*",
+            resp = es.search(index=index,
                     body={
-                        "size": 10,
+                        "size": 100,
                         "sort": [{"@timestamp":{"order": "asc"}}],
                         "query": {
                             "bool": { "must": musts }
@@ -119,7 +126,6 @@ def stream_logs():
                     if json_fields != "all":
                         source = { key: source[key] for key in json_fields if key in source }
                     yield json.dumps(source)
-                    yield "\n"
                 else:
                     try:
                         hostname = source.get('hostname', source.get('HOSTNAME', '<no-hostname>'))
@@ -128,25 +134,31 @@ def stream_logs():
                             yield f": {source['thread_name']}"
                         if 'stack_trace' in source:
                             yield f"\n{source['stack_trace']}"
-                        yield "\n"
                     except KeyError as e:
-                        print(e)
-                        yield source
+                        yield str(source)
+                yield "\n"
             seen = last_seen
 
             time.sleep(1)
 
-    es = es_dc1
-    if request.args.get('dc') == "dc3":
+    dc = request.args.get('dc') or 'dc1'
+    if dc == 'dc1':
+        es = es_dc1
+    elif dc == 'dc3':
         es = es_dc3
+    elif dc == 'dc2':
+        es = es_dc2
+    else:
+        abort(400, f"unknown datacenter '{dc}'")
 
+    index = request.args.get('index') or 'application-*'
     application_name = request.args.get('application_name') or 'api'
     log_level = request.args.get('level') or 'ERROR'
     query = request.args.get('q')
     offset_seconds = int(request.args.get('offset_seconds') or 5*60)
     fmt = request.args.get('fmt') or 'text'
     json_fields = request.args.get('fields') or 'all'
-    return Response(results(es, application_name, log_level, query, offset_seconds, fmt, json_fields), content_type='text/plain')
+    return Response(results(es, index, application_name, log_level, query, offset_seconds, fmt, json_fields), content_type='text/plain')
 
 host = 'localhost'
 port = 12345
