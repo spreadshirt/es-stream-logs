@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from calendar import timegm
 from datetime import datetime
 import os
 import time
@@ -24,26 +23,27 @@ def stream_logs():
     def now_ms():
         return int(datetime.utcnow().timestamp()*1000)
 
-    def results(application_name, log_level):
+    def results(application_name, log_levels):
         last_timestamp = now_ms() - 5*60*1000
         seen = {}
         while True:
             now = now_ms()
 
+            musts = []
+            levels_query = { "bool" : { "should": [{"term": {"level": l}} for l in log_levels.split(',')]}}
+            musts.append(levels_query)
+            if application_name != "all":
+                musts.append({"term": {"application_name": application_name}})
+            timerange = { "range": { "@timestamp": { "gte": last_timestamp, "lt": now, "format": "epoch_millis" } } }
+            musts.append(timerange)
             resp = es.search(index="application-*",
                     body={
                         "size": 10,
                         "sort": [{"@timestamp":{"order": "asc"}}],
                         "query": {
-                            "bool": {
-                                "must": [
-                                    {"match_phrase": { "level": {"query": log_level } } },
-                                    {"match_phrase": { "application_name": { "query": application_name } } },
-                                    { "range": { "@timestamp": { "gte": last_timestamp, "lt": now, "format": "epoch_millis" } } }
-                                    ],
-                                }
-                            }
-                        })
+                            "bool": { "must": musts }
+                        }
+                    })
 
             last_seen = {}
             i = 0
@@ -58,7 +58,9 @@ def stream_logs():
                 ts = int(datetime.strptime(source['@timestamp'], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()*1000)
                 last_timestamp = max(ts, last_timestamp)
 
-                yield f"{source['@timestamp']} -- [{source['hostname']}] {source['message']}: {source['thread_name']}"
+                yield f"{source['@timestamp']} -- [{source.get('hostname', '<no-hostname>')}] {source['message']}"
+                if 'thread_name' in source:
+                    yield f": {source['thread_name']}"
                 if 'stack_trace' in source:
                     yield f"\n{source['stack_trace']}"
                 yield "\n"
