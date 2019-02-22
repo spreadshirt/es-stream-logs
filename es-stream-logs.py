@@ -19,8 +19,6 @@ es.info()
 app = Flask(__name__)
 
 # curl 'http://kibana-dc1.example.com/elasticsearch/_msearch' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:67.0) Gecko/20100101 Firefox/67.0' -H 'Accept: application/json, text/plain, */*' -H 'Accept-Language: en-US,en;q=0.5' --compressed -H 'Referer: http://kibana-dc1.example.com/app/kibana' -H 'content-type: application/x-ndjson' -H 'kbn-version: 5.6.9' -H 'DNT: 1' -H 'Connection: keep-alive' -H 'Pragma: no-cache' -H 'Cache-Control: no-cache' --data $'{"index":["application-2019.02.21"],"ignore_unavailable":true,"preference":1550757631050}\n{"version":true,"size":500,"sort":[{"@timestamp":{"order":"desc","unmapped_type":"boolean"}}],"query":{"bool":{"must":[{"match_all":{}},{"match_phrase":{"level":{"query":"ERROR"}}},{"match_phrase":{"application_name":{"query":"api"}}},{"range":{"@timestamp":{"gte":1550757641281,"lte":1550758541281,"format":"epoch_millis"}}}],"must_not":[]}},"_source":{"excludes":[]},"aggs":{"2":{"date_histogram":{"field":"@timestamp","interval":"30s","time_zone":"UTC","min_doc_count":1}}},"stored_fields":["*"],"script_fields":{},"docvalue_fields":["@timestamp","time"],"highlight":{"pre_tags":["@kibana-highlighted-field@"],"post_tags":["@/kibana-highlighted-field@"],"fields":{"*":{"highlight_query":{"bool":{"must":[{"match_all":{}},{"match_phrase":{"level":{"query":"ERROR"}}},{"match_phrase":{"application_name":{"query":"api"}}},{"range":{"@timestamp":{"gte":1550757641281,"lte":1550758541281,"format":"epoch_millis"}}}],"must_not":[]}}}},"fragment_size":2147483647}}\n'
-
-# {"range":{"@timestamp":{"gte":1550757641281,"lte":1550758541281,"format":"epoch_millis"}
 @app.route('/')
 def stream_logs():
     def now_ms():
@@ -32,7 +30,6 @@ def stream_logs():
         while True:
             now = now_ms()
 
-            #print("searching", last_timestamp, "to", now, last_timestamp < now)
             resp = es.search(index="application-*",
                     body={
                         "size": 10,
@@ -56,14 +53,10 @@ def stream_logs():
                 _id = hit['_id']
                 last_seen[_id] = True
                 if _id in seen:
-                    #print("skipping", i, _id, source['@timestamp'], source['message'])
                     continue
-                #print("include ", i, _id, source['@timestamp'], source['message'])
 
                 ts = int(datetime.strptime(source['@timestamp'], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()*1000)
-                #print(last_timestamp, ts, source['@timestamp'], ts > last_timestamp)
                 last_timestamp = max(ts, last_timestamp)
-                #print(last_timestamp, ts, source['@timestamp'])
 
                 yield f"{source['@timestamp']} -- [{source['hostname']}] {source['message']}: {source['thread_name']}"
                 if 'stack_trace' in source:
