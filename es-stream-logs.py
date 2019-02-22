@@ -85,7 +85,7 @@ def stream_logs():
         if fields != "all":
             fields = fields.split(',')
 
-        last_timestamp = now_ms() - offset_seconds*1000
+        last_timestamp = now_ms() - int(offset_seconds)*1000
         seen = {}
 
         required_filters = []
