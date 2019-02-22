@@ -3,6 +3,7 @@
 from datetime import datetime
 import json
 import os
+import sys
 import time
 
 from elasticsearch import Elasticsearch
@@ -147,4 +148,10 @@ def stream_logs():
     json_fields = request.args.get('fields') or 'all'
     return Response(results(es, application_name, log_level, query, offset_seconds, fmt, json_fields), content_type='text/plain')
 
-app.run(host='localhost', port=12345)
+host = 'localhost'
+port = 12345
+if len(sys.argv) > 1:
+    host = sys.argv[1]
+if len(sys.argv) > 2:
+    port = int(sys.argv[2])
+app.run(host=host, port=port)
