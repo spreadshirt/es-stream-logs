@@ -49,6 +49,9 @@ GET /logs - stream logs from elasticsearch
     - q: elastic search query string query
         (See https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax)
 
+    - offset_seconds: how far to fetch messages from the past in seconds
+      defaults to 300, i.e. five minutes
+
     - fmt: "text" or "json"
       defaults to "text", "json" outputs one log entry per line as a json object
     - fields: if fmt is "json", output only the given fields
@@ -69,11 +72,11 @@ def stream_logs():
     def now_ms():
         return int(datetime.utcnow().timestamp()*1000)
 
-    def results(es, application_name, log_levels, query, fmt, json_fields):
+    def results(es, application_name, log_levels, query, offset_seconds, fmt, json_fields):
         if json_fields != "all":
             json_fields = json_fields.split(',')
 
-        last_timestamp = now_ms() - 5*60*1000
+        last_timestamp = now_ms() - offset_seconds*1000
         seen = {}
 
         while True:
@@ -139,8 +142,9 @@ def stream_logs():
     application_name = request.args.get('application_name') or 'api'
     log_level = request.args.get('level') or 'ERROR'
     query = request.args.get('q')
+    offset_seconds = int(request.args.get('offset_seconds') or 5*60)
     fmt = request.args.get('fmt') or 'text'
     json_fields = request.args.get('fields') or 'all'
-    return Response(results(es, application_name, log_level, query, fmt, json_fields), content_type='text/plain')
+    return Response(results(es, application_name, log_level, query, offset_seconds, fmt, json_fields), content_type='text/plain')
 
 app.run(host='localhost', port=12345)
