@@ -32,8 +32,9 @@ def stream_logs():
             musts = []
             levels_query = { "bool" : { "should": [{"term": {"level": l}} for l in log_levels.split(',')]}}
             musts.append(levels_query)
+            application_names_query = { "bool" : { "should": [{"term": {"application_name": app}} for app in application_name.split(',')]}}
             if application_name != "all":
-                musts.append({"term": {"application_name": application_name}})
+                musts.append(application_names_query)
             timerange = { "range": { "@timestamp": { "gte": last_timestamp, "lt": now, "format": "epoch_millis" } } }
             musts.append(timerange)
             resp = es.search(index="application-*",
