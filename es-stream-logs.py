@@ -13,8 +13,11 @@ from flask import Flask, Response, request
 user = os.environ['ES_USER']
 password = os.environ['ES_PASSWORD']
 
-es = Elasticsearch(['https://elasticsearch-dc1.example.com:443'], http_auth=(user, password))
-es.info()
+es_dc1 = Elasticsearch(['https://elasticsearch-dc1.example.com:443'], http_auth=(user, password))
+es_dc1.info()
+
+es_dc3 = Elasticsearch(['https://elasticsearch-dc3.example.com:443'], http_auth=(user, password))
+es_dc3.info()
 
 app = Flask(__name__)
 
@@ -38,6 +41,7 @@ GET /logs - stream logs from elasticsearch
 
   Parameters:
 
+    - dc: "dc1" or "dc3"
     - application_name: "api", "api,login", "all"
       defaults to "api"
     - level: "ERROR", "WARN,ERROR"
@@ -65,7 +69,7 @@ def stream_logs():
     def now_ms():
         return int(datetime.utcnow().timestamp()*1000)
 
-    def results(application_name, log_levels, query, fmt, json_fields):
+    def results(es, application_name, log_levels, query, fmt, json_fields):
         if json_fields != "all":
             json_fields = json_fields.split(',')
 
@@ -127,11 +131,15 @@ def stream_logs():
 
             time.sleep(1)
 
+    es = es_dc1
+    if request.args.get('dc') == "dc3":
+        es = es_dc3
+
     application_name = request.args.get('application_name') or 'api'
     log_level = request.args.get('level') or 'ERROR'
     query = request.args.get('q')
     fmt = request.args.get('fmt') or 'text'
     json_fields = request.args.get('fields') or 'all'
-    return Response(results(application_name, log_level, query, fmt, json_fields), content_type='text/plain')
+    return Response(results(es, application_name, log_level, query, fmt, json_fields), content_type='text/plain')
 
 app.run(host='localhost', port=12345)
