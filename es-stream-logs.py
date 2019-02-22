@@ -23,7 +23,7 @@ def stream_logs():
     def now_ms():
         return int(datetime.utcnow().timestamp()*1000)
 
-    def results(application_name, log_levels):
+    def results(application_name, log_levels, query):
         last_timestamp = now_ms() - 5*60*1000
         seen = {}
         while True:
@@ -35,6 +35,8 @@ def stream_logs():
             application_names_query = { "bool" : { "should": [{"term": {"application_name": app}} for app in application_name.split(',')]}}
             if application_name != "all":
                 musts.append(application_names_query)
+            if query:
+                musts.append({"query_string": {"query": query}})
             timerange = { "range": { "@timestamp": { "gte": last_timestamp, "lt": now, "format": "epoch_millis" } } }
             musts.append(timerange)
             resp = es.search(index="application-*",
@@ -75,6 +77,7 @@ def stream_logs():
 
     application_name = request.args.get('application_name') or 'api'
     log_level = request.args.get('level') or 'ERROR'
-    return Response(results(application_name, log_level), content_type='text/plain')
+    query = request.args.get('q')
+    return Response(results(application_name, log_level, query), content_type='text/plain')
 
 app.run(host='localhost', port=12345)
