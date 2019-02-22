@@ -59,12 +59,16 @@ def stream_logs():
                 ts = int(datetime.strptime(source['@timestamp'], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()*1000)
                 last_timestamp = max(ts, last_timestamp)
 
-                yield f"{source['@timestamp']} -- [{source.get('hostname', '<no-hostname>')}] {source['message']}"
-                if 'thread_name' in source:
-                    yield f": {source['thread_name']}"
-                if 'stack_trace' in source:
-                    yield f"\n{source['stack_trace']}"
-                yield "\n"
+                try:
+                    yield f"{source['@timestamp']} -- [{source.get('hostname', '<no-hostname>')}] {source['message']}"
+                    if 'thread_name' in source:
+                        yield f": {source['thread_name']}"
+                    if 'stack_trace' in source:
+                        yield f"\n{source['stack_trace']}"
+                    yield "\n"
+                except KeyError as e:
+                    print(e)
+                    yield source
             seen = last_seen
 
             time.sleep(1)
