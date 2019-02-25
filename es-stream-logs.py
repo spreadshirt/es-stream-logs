@@ -35,13 +35,18 @@ GET /logs - stream logs from elasticsearch
 
     - dc: "dc1", "dc3" or "dc2"
       defaults to "dc1"
-    - index: index to query (might not work, try application_name=all&level=all)
+    - index: index to query
       defaults to "application-*"
 
-    - application_name: "api", "api,login", "all"
-      defaults to "api"
-    - level: "ERROR", "WARN,ERROR"
-      defaults to "ERROR"
+    - use `<any-field>=<anyvalue>` or `<any-field>=<value1>,<value2>,<value3>`
+      as query paramters to require a field to have certain values
+
+      e.g.:
+
+      - `application_name=api`
+      - `application_name=api,login,registration&level=ERROR`
+      - `level=ERROR`
+
     - q: elastic search query string query
         (See https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax)
 
@@ -51,14 +56,16 @@ GET /logs - stream logs from elasticsearch
     - fmt: "text" or "json"
       defaults to "text", "json" outputs one log entry per line as a json object
     - fields: if fmt is "json", output only the given fields
+  </pre>
 
-  Examples:
+  <h3>Examples:</h3>
 
-    - /logs?application_name=all&level=ERROR
-    - /logs?application_name=api&level=ERROR,WARN
-    - /logs?application_name=all&level=INFO&q=password
-    - /logs?application_name=all&level=INFO&q=password&fmt=json&fields=@timestamp,hostname,message,stack_trace
-    </pre>
+  <ul>
+    <li><a href="/logs?level=ERROR">/logs?level=ERROR</a></li>
+    <li><a href="/logs?application_name=api&level=ERROR,WARN">/logs?application_name=api&level=ERROR,WARN</a></li>
+    <li><a href="/logs?level=INFO&q=password">/logs?level=INFO&q=password</a></li>
+    <li><a href="/logs?level=INFO&q=password&fmt=json&fields=@timestamp,hostname,message,stack_trace">/logs?level=INFO&q=password&fmt=json&fields=@timestamp,hostname,message,stack_trace</a></li>
+  <ul>
 </body>
     """
 
@@ -68,9 +75,7 @@ def stream_logs():
     def now_ms():
         return int(datetime.utcnow().timestamp()*1000)
 
-    def results(es, dc='dc1', index="application-*",
-            application_name="api", level="ERROR", q=None,
-            offset_seconds=300, fmt="text", fields="all", **kwargs):
+    def results(es, dc='dc1', index="application-*", q=None, offset_seconds=300, fmt="text", fields="all", **kwargs):
         if fields != "all":
             fields = fields.split(',')
 
@@ -78,13 +83,6 @@ def stream_logs():
         seen = {}
 
         required_filters = []
-        if index == "application-*":
-            if level != "all":
-                levels_query = { "bool" : { "should": [{"term": {"level": l}} for l in level.split(',')]}}
-                required_filters.append(levels_query)
-            if application_name != "all":
-                application_names_query = { "bool" : { "should": [{"term": {"application_name": app}} for app in application_name.split(',')]}}
-                required_filters.append(application_names_query)
         if q:
             required_filters.append({"query_string": {"query": q}})
 
