@@ -2,14 +2,19 @@
 
 from datetime import datetime
 import json
+import os
 import sys
 import time
 
 from elasticsearch import Elasticsearch
+import elasticsearch
 
 from flask import Flask, Response, abort, request
 
 app = Flask(__name__)
+
+es_user = os.environ.get('ES_USER', None)
+es_password = os.environ.get('ES_PASSWORD', None)
 
 datacenters = ['dc1', 'dc3', 'dc2']
 
@@ -109,6 +114,9 @@ def stream_logs():
                 print(e)
                 time.sleep(1)
                 continue
+            except elasticsearch.AuthenticationException as e:
+                yield str(e)
+                return
 
             last_seen = {}
             i = 0
@@ -142,19 +150,19 @@ def stream_logs():
 
             time.sleep(1)
 
-    auth = request.authorization
-    if not auth:
-        return Response('Could not verify your access level for that URL.\n'
-                'You have to login with proper credentials',
-                401,
-                {'WWW-Authenticate': 'Basic realm="Login with  LDAP credentials"'})
+    if es_user == None or es_password == None:
+        if not request.authorization:
+            return Response('Could not verify your access level for that URL.\n'
+                    'You have to login with proper credentials',
+                    401,
+                    {'WWW-Authenticate': 'Basic realm="Login with  LDAP credentials"'})
 
     dc = request.args.get('dc') or 'dc1'
     if dc not in datacenters:
         abort(400, f"unknown datacenter '{dc}'")
 
     es = Elasticsearch([f"https://es-log-{dc}.example.com:443"],
-            http_auth=(auth.username, auth.password))
+            http_auth=(es_user or request.authorization.username, es_password or request.authorization.password))
 
     return Response(results(es, **request.args), content_type='text/plain')
 
