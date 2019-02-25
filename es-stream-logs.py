@@ -2,7 +2,6 @@
 
 from datetime import datetime
 import json
-import os
 import sys
 import time
 
@@ -10,19 +9,9 @@ from elasticsearch import Elasticsearch
 
 from flask import Flask, Response, abort, request
 
-user = os.environ['ES_USER']
-password = os.environ['ES_PASSWORD']
-
-es_dc1 = Elasticsearch(['https://elasticsearch-dc1.example.com:443'], http_auth=(user, password))
-es_dc1.info()
-
-es_dc3 = Elasticsearch(['https://elasticsearch-dc3.example.com:443'], http_auth=(user, password))
-es_dc3.info()
-
-es_dc2 = Elasticsearch(['https://elasticsearch-dc2.example.com:443'], http_auth=(user, password))
-es_dc2.info()
-
 app = Flask(__name__)
+
+datacenters = ['dc1', 'dc3', 'dc2']
 
 @app.route('/')
 def index():
@@ -155,15 +144,19 @@ def stream_logs():
 
             time.sleep(1)
 
+    auth = request.authorization
+    if not auth:
+        return Response('Could not verify your access level for that URL.\n'
+                'You have to login with proper credentials',
+                401,
+                {'WWW-Authenticate': 'Basic realm="Login with  LDAP credentials"'})
+
     dc = request.args.get('dc') or 'dc1'
-    if dc == 'dc1':
-        es = es_dc1
-    elif dc == 'dc3':
-        es = es_dc3
-    elif dc == 'dc2':
-        es = es_dc2
-    else:
+    if dc not in datacenters:
         abort(400, f"unknown datacenter '{dc}'")
+
+    es = Elasticsearch([f"https://es-log-{dc}.example.com:443"],
+            http_auth=(auth.username, auth.password))
 
     return Response(results(es, **request.args), content_type='text/plain')
 
