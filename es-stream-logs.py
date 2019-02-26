@@ -167,7 +167,7 @@ def stream_logs():
     return Response(results(es, **request.args), content_type='text/plain')
 
 host = 'localhost'
-port = 12345
+port = 3028
 if len(sys.argv) > 1:
     host = sys.argv[1]
 if len(sys.argv) > 2:
