@@ -43,7 +43,7 @@ GET /logs - stream logs from elasticsearch
     - index: index to query
       defaults to "application-*"
 
-    - use `<any-field>=<anyvalue>` or `<any-field>=<value1>,<value2>,<value3>`
+    - use `&lt;any-field&gt;=&lt;anyvalue&gt;` or `&lt;any-field&gt;=&lt;value1&gt;,&lt;value2&gt;,&lt;value3&gt;`
       as query paramters to require a field to have certain values
 
       e.g.:
