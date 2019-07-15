@@ -162,19 +162,19 @@ def stream_logs():
                                 yield f": {source['thread_name']}"
                             if 'stack_trace' in source:
                                 yield f"\n{source['stack_trace']}"
-                        except KeyError as e:
+                        except KeyError:
                             yield str(source)
                 yield "\n"
             seen = last_seen
 
             time.sleep(1)
 
-    if es_user == None or es_password == None:
+    if es_user is None or es_password is None:
         if not request.authorization:
             return Response('Could not verify your access level for that URL.\n'
-                    'You have to login with proper credentials',
-                    401,
-                    {'WWW-Authenticate': 'Basic realm="Login with  LDAP credentials"'})
+                            'You have to login with proper credentials',
+                            401,
+                            {'WWW-Authenticate': 'Basic realm="Login with  LDAP credentials"'})
 
     dc = request.args.get('dc') or 'dc1'
     if dc not in datacenters:
