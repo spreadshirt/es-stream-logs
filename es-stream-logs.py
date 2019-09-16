@@ -124,7 +124,7 @@ def stream_logs():
 
         required_filters = []
         if q:
-            required_filters.append({"query_string": {"query": q}})
+            required_filters.append({"query_string": {"query": q, "analyze_wildcard": True}})
 
         for key, val in kwargs.items():
             required_filters.append({"bool" : {"should": [{"term": {key: v}} for v in val.split(',')]}})
