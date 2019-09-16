@@ -64,8 +64,10 @@ GET /logs - stream logs from elasticsearch
     - q: elastic search query string query
         (See https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax)
 
-    - offset_seconds: how far to fetch messages from the past in seconds
-      defaults to 300, i.e. five minutes
+    - from: how far to fetch messages from the past, e.g. 'now-3d'
+      defaults to 'now-5m'
+    - to: last timestamp to fetch messages for
+      defaults to 'now'
 
     - fmt: "text" or "json"
       defaults to "text", "json" outputs one log entry per line as a json object
@@ -107,11 +109,17 @@ def stream_logs():
     def now_ms():
         return int(datetime.utcnow().timestamp()*1000)
 
-    def results(es, dc='dc1', index="application-*", q=None, offset_seconds=300, fmt="text", fields="all", separator=" ", **kwargs):
+    def results(es, dc='dc1', index="application-*", q=None, fmt="text", fields="all", separator=" ", **kwargs):
         if fields != "all":
             fields = fields.split(',')
 
-        last_timestamp = now_ms() - int(offset_seconds)*1000
+        from_timestamp = kwargs.get("from", "now-5m")
+        to_timestamp = kwargs.get("to", "now")
+        # remove from and to because they are not fields, None to prevent KeyError
+        kwargs.pop("from", None)
+        kwargs.pop("to", None)
+
+        last_timestamp = from_timestamp
         seen = {}
 
         required_filters = []
@@ -127,7 +135,7 @@ def stream_logs():
         while True:
             now = now_ms()
 
-            timerange = { "range": { "@timestamp": { "gte": last_timestamp, "lt": now, "format": "epoch_millis" } } }
+            timerange = {"range": {"@timestamp": {"gte": last_timestamp, "lt": to_timestamp}}}
             try:
                 resp = es.search(index=index,
                         body={
@@ -156,7 +164,10 @@ def stream_logs():
                     continue
 
                 ts = int(datetime.strptime(source['@timestamp'], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()*1000)
-                last_timestamp = max(ts, last_timestamp)
+                if isinstance(last_timestamp, str):
+                    last_timestamp = ts
+                else:
+                    last_timestamp = max(ts, last_timestamp)
 
                 if fmt == "json":
                     if fields != "all":
