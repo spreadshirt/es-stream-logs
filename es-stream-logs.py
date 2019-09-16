@@ -163,6 +163,8 @@ def stream_logs():
                 if _id in seen:
                     continue
 
+                yield "\n"
+
                 ts = int(datetime.strptime(source['@timestamp'], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()*1000)
                 if isinstance(last_timestamp, str):
                     last_timestamp = ts
@@ -187,8 +189,10 @@ def stream_logs():
                                 yield f"\n{source['stack_trace']}"
                         except KeyError:
                             yield str(source)
-                yield "\n"
             seen = last_seen
+
+            # print space to try and keep connection open
+            yield " "
 
             time.sleep(1)
 
