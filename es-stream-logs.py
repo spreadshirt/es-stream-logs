@@ -139,7 +139,7 @@ def stream_logs():
             try:
                 resp = es.search(index=index,
                         body={
-                            "size": 100,
+                            "size": 500,
                             "sort": [{"@timestamp":{"order": "asc"}}],
                             "query": {
                                 "bool": {"must": [*required_filters, timerange]}
