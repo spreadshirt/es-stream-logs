@@ -211,7 +211,7 @@ def stream_logs():
                        http_auth=(ES_USER or request.authorization.username,
                                   ES_PASSWORD or request.authorization.password))
 
-    return Response(results(es, **request.args), content_type='text/plain')
+    return Response(results(es, **request.args), content_type='text/plain; charset=utf-8')
 
 if __name__ == "__main__":
     host = 'localhost'
