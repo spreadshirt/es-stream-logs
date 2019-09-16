@@ -127,7 +127,10 @@ def stream_logs():
             required_filters.append({"query_string": {"query": q, "analyze_wildcard": True}})
 
         for key, val in kwargs.items():
-            required_filters.append({"bool" : {"should": [{"term": {key: v}} for v in val.split(',')]}})
+            if val == "":
+                required_filters.append({"exists": {"field": key}})
+            else:
+                required_filters.append({"bool" : {"should": [{"term": {key: v}} for v in val.split(',')]}})
 
         # send something so we return an initial response
         yield ""
