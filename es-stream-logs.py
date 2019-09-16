@@ -135,6 +135,29 @@ def stream_logs():
         # send something so we return an initial response
         yield ""
 
+        if fmt == "html":
+            if fields == "all":
+                yield "must set fields"
+                return
+
+            yield """<!doctype html>
+<html>
+<body>
+<table>
+<thead>
+<tr>
+"""
+
+            for field in fields:
+                yield f"<td>{field}</td>"
+
+            yield """
+</tr>
+</thead>
+
+<tbody>
+"""
+
         while True:
             now = now_ms()
 
@@ -178,6 +201,13 @@ def stream_logs():
                     if fields != "all":
                         source = filter_dict(source, fields)
                     yield json.dumps(source)
+                if fmt == "html":
+                    source = filter_dict(source, fields)
+
+                    yield "<tr>\n"
+                    for field in fields:
+                        yield f"<td>{source.get(field, '')}</td>"
+                    yield "</tr>\n"
                 else:
                     if fields != "all":
                         source = filter_dict(source, fields)
@@ -214,7 +244,14 @@ def stream_logs():
                        http_auth=(ES_USER or request.authorization.username,
                                   ES_PASSWORD or request.authorization.password))
 
-    return Response(results(es, **request.args), content_type='text/plain; charset=utf-8')
+    fmt = request.args.get("fmt", "text")
+    content_type = "text/plain"
+    if fmt == "json":
+        content_type = "application/json"
+    elif fmt == "html":
+        content_type = "text/html"
+
+    return Response(results(es, **request.args), content_type=content_type+'; charset=utf-8')
 
 if __name__ == "__main__":
     host = 'localhost'
