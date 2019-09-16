@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+"""
+
+Streams logs from elasticsearch, hopefully providing a quicker way to
+query than Kibana, at least for ad-hoc queries.
+
+"""
+
 from datetime import datetime
 import json
 import os
@@ -11,15 +18,17 @@ import elasticsearch
 
 from flask import Flask, Response, abort, request
 
-app = Flask(__name__)
+APP = Flask(__name__)
 
-es_user = os.environ.get('ES_USER', None)
-es_password = os.environ.get('ES_PASSWORD', None)
+ES_USER = os.environ.get('ES_USER', None)
+ES_PASSWORD = os.environ.get('ES_PASSWORD', None)
 
-datacenters = ['dc1', 'dc3', 'dc2']
+DATACENTERS = ['dc1', 'dc3', 'dc2']
 
-@app.route('/')
-def index():
+@APP.route('/')
+def index_route():
+    """ GET / """
+
     return """
 <!doctype html
 <html>
@@ -75,22 +84,25 @@ GET /logs - stream logs from elasticsearch
     """
 
 def nested_get(dct, keys):
-	for key in keys:
-		dct = dct[key]
-	return dct
+    """ Gets keys recursively from dict, e.g. nested_get({test: inner: 42}, ["test", "inner"])
+        would return the nested `42`. """
+    for key in keys:
+        dct = dct[key]
+    return dct
 
 def filter_dict(source, fields):
-	res = {}
-	for key in fields:
-		try:
-			val = nested_get(source, key.split("."))
-			res[key] = val
-		except KeyError:
-			pass
-	return res
+    """ Filters source to only contain keys from fields. """
+    res = {}
+    for key in fields:
+        try:
+            val = nested_get(source, key.split("."))
+            res[key] = val
+        except KeyError:
+            pass
+    return res
 
 # curl 'http://kibana-dc1.example.com/elasticsearch/_msearch' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:67.0) Gecko/20100101 Firefox/67.0' -H 'Accept: application/json, text/plain, */*' -H 'Accept-Language: en-US,en;q=0.5' --compressed -H 'Referer: http://kibana-dc1.example.com/app/kibana' -H 'content-type: application/x-ndjson' -H 'kbn-version: 5.6.9' -H 'DNT: 1' -H 'Connection: keep-alive' -H 'Pragma: no-cache' -H 'Cache-Control: no-cache' --data $'{"index":["application-2019.02.21"],"ignore_unavailable":true,"preference":1550757631050}\n{"version":true,"size":500,"sort":[{"@timestamp":{"order":"desc","unmapped_type":"boolean"}}],"query":{"bool":{"must":[{"match_all":{}},{"match_phrase":{"level":{"query":"ERROR"}}},{"match_phrase":{"application_name":{"query":"api"}}},{"range":{"@timestamp":{"gte":1550757641281,"lte":1550758541281,"format":"epoch_millis"}}}],"must_not":[]}},"_source":{"excludes":[]},"aggs":{"2":{"date_histogram":{"field":"@timestamp","interval":"30s","time_zone":"UTC","min_doc_count":1}}},"stored_fields":["*"],"script_fields":{},"docvalue_fields":["@timestamp","time"],"highlight":{"pre_tags":["@kibana-highlighted-field@"],"post_tags":["@/kibana-highlighted-field@"],"fields":{"*":{"highlight_query":{"bool":{"must":[{"match_all":{}},{"match_phrase":{"level":{"query":"ERROR"}}},{"match_phrase":{"application_name":{"query":"api"}}},{"range":{"@timestamp":{"gte":1550757641281,"lte":1550758541281,"format":"epoch_millis"}}}],"must_not":[]}}}},"fragment_size":2147483647}}\n'
-@app.route('/logs')
+@APP.route('/logs')
 def stream_logs():
     def now_ms():
         return int(datetime.utcnow().timestamp()*1000)
@@ -107,7 +119,7 @@ def stream_logs():
             required_filters.append({"query_string": {"query": q}})
 
         for key, val in kwargs.items():
-            required_filters.append({ "bool" : { "should": [{"term": {key: v}} for v in val.split(',')]}})
+            required_filters.append({"bool" : {"should": [{"term": {key: v}} for v in val.split(',')]}})
 
         # send something so we return an initial response
         yield ""
@@ -122,21 +134,21 @@ def stream_logs():
                             "size": 100,
                             "sort": [{"@timestamp":{"order": "asc"}}],
                             "query": {
-                                "bool": { "must": [*required_filters, timerange] }
+                                "bool": {"must": [*required_filters, timerange]}
                                 }
                             })
-            except elasticsearch.ConnectionTimeout as e:
-                print(e)
+            except elasticsearch.ConnectionTimeout as ex:
+                print(ex)
                 time.sleep(1)
                 continue
-            except elasticsearch.AuthenticationException as e:
-                yield str(e)
+            except elasticsearch.AuthenticationException as ex:
+                yield str(ex)
                 return
 
             last_seen = {}
             i = 0
             for hit in resp['hits']['hits']:
-                i+=1
+                i += 1
                 source = hit['_source']
                 _id = hit['_id']
                 last_seen[_id] = True
@@ -169,7 +181,7 @@ def stream_logs():
 
             time.sleep(1)
 
-    if es_user is None or es_password is None:
+    if ES_USER is None or ES_USER is None:
         if not request.authorization:
             return Response('Could not verify your access level for that URL.\n'
                             'You have to login with proper credentials',
@@ -177,18 +189,20 @@ def stream_logs():
                             {'WWW-Authenticate': 'Basic realm="Login with  LDAP credentials"'})
 
     dc = request.args.get('dc') or 'dc1'
-    if dc not in datacenters:
+    if dc not in DATACENTERS:
         abort(400, f"unknown datacenter '{dc}'")
 
     es = Elasticsearch([f"https://es-log-{dc}.example.com:443"],
-            http_auth=(es_user or request.authorization.username, es_password or request.authorization.password))
+                       http_auth=(ES_USER or request.authorization.username,
+                                  ES_PASSWORD or request.authorization.password))
 
     return Response(results(es, **request.args), content_type='text/plain')
 
-host = 'localhost'
-port = 3028
-if len(sys.argv) > 1:
-    host = sys.argv[1]
-if len(sys.argv) > 2:
-    port = int(sys.argv[2])
-app.run(host=host, port=port, threaded=True)
+if __name__ == "__main__":
+    host = 'localhost'
+    port = 3028
+    if len(sys.argv) > 1:
+        host = sys.argv[1]
+    if len(sys.argv) > 2:
+        port = int(sys.argv[2])
+    APP.run(host=host, port=port, threaded=True)
