@@ -166,6 +166,10 @@ def stream_logs(es, dc='dc1', index="application-*", q=None, fmt="html", fields=
 <html>
 <head>
 <style>
+    .stats {
+        font-family: monospace;
+    }
+
     table {
         width: 100%;
     }
@@ -187,6 +191,18 @@ def stream_logs(es, dc='dc1', index="application-*", q=None, fmt="html", fields=
 </style>
 </head>
 <body>
+
+<section class="stats">
+    <p><span id="stats-num-hits">0</span> hits</p>
+</section>
+
+<script>
+var numHitsEl = document.getElementById("stats-num-hits");
+window.setInterval(function() {
+    numHitsEl.textContent = document.querySelectorAll("tbody tr").length;
+}, 1000);
+</script>
+
 <table>
 <thead>
 <tr>
