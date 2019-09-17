@@ -128,6 +128,7 @@ def stream_logs(es, dc='dc1', index="application-*", q=None, fmt="html", fields=
     if q:
         required_filters.append({"query_string": {"query": q, "analyze_wildcard": True}})
 
+    compare_ops = {"<": "lt", ">": "gt"}
     for key, val in kwargs.items():
         exclude = False
         if key.startswith("-"):
@@ -137,6 +138,13 @@ def stream_logs(es, dc='dc1', index="application-*", q=None, fmt="html", fields=
         filters = []
         if val == "":
             filters.append({"exists": {"field": key}})
+        elif val[:1] in compare_ops:
+            compare_op = compare_ops[val[:1]]
+            try:
+                filters.append({"range": {key: {compare_op: int(val[1:])}}})
+            except ValueError:
+                yield f"value for range query on '{key}' must be a number, but was '{val[1:]}'"
+                return
         else:
             if "," in val:
                 filters.append({"bool" : {
