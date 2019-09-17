@@ -244,6 +244,7 @@ window.setInterval(function() {
             yield str(ex)
             return
 
+        all_hits_seen = True
         last_seen = {}
         i = 0
         for hit in resp['hits']['hits']:
@@ -253,6 +254,8 @@ window.setInterval(function() {
             last_seen[_id] = True
             if _id in seen:
                 continue
+
+            all_hits_seen = False
 
             yield "\n"
 
@@ -294,6 +297,9 @@ window.setInterval(function() {
                     except KeyError:
                         yield str(source)
         seen = last_seen
+
+        if to_timestamp != 'now' and all_hits_seen:
+            return
 
         # print space to try and keep connection open
         yield " "
