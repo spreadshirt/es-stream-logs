@@ -133,7 +133,10 @@ def stream_logs():
 
         for key, val in kwargs.items():
             if val == "":
-                required_filters.append({"exists": {"field": key}})
+                if key.startswith("-"):
+                    required_filters.append({"bool": {"must_not": {"exists": {"field": key[1:]}}}})
+                else:
+                    required_filters.append({"exists": {"field": key}})
             else:
                 required_filters.append({"bool" : {"should": [{"term": {key: v}} for v in val.split(',')]}})
 
