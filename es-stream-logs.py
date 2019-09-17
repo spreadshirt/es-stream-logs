@@ -169,14 +169,12 @@ def create_query(from_timestamp, to_timestamp, interval="1h", **kwargs):
             }
         }
 
-def aggregation(es, index="application-*", fields="all", **kwargs):
+def aggregation(es, index="application-*", **kwargs):
     """ Do aggregation query. """
 
     # remove unused params
     kwargs.pop('dc', None)
-
-    if fields != "all":
-        fields = fields.split(',')
+    kwargs.pop('fields', None)
 
     from_timestamp = kwargs.get("from", "now-5m")
     to_timestamp = kwargs.get("to", "now")
@@ -225,14 +223,14 @@ def aggregation(es, index="application-*", fields="all", **kwargs):
 
 
 
-    num_hits = resp['hits']['total']['value']
+    #num_hits = resp['hits']['total']['value']
     avg_count = 0
 
     if num_results_buckets:
         bucket_width = (1400 / len(num_results_buckets)) - 5
         avg_count = int(total_count / len(num_results_buckets))
 
-    img += f"""<text x="10" y="14">hits: {num_hits}, max: {max_count}, avg: {avg_count}</text>"""
+    img += f"""<text x="10" y="14">max: {max_count}, avg: {avg_count}</text>"""
 
     pos_x = 0
     for bucket in num_results_buckets:
@@ -265,6 +263,10 @@ def serve_aggregation():
 def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", separator=" ", **kwargs):
     """ Contruct query and stream logs given the elasticsearch client and parameters. """
 
+    kwargs_query = map(lambda item: item[0] + "=" + item[1],
+            list(kwargs.items()) + [('dc', dc), ('fields', fields)])
+    aggregation_url = '/aggregation.svg?' + "&".join(kwargs_query)
+
     if fields != "all":
         fields = fields.split(',')
 
@@ -287,6 +289,14 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
 <style>
     .stats {
         font-family: monospace;
+    }
+
+    #histogram_container {
+        height: 130px;
+    }
+
+    #histogram {
+        overflow: hidden;
     }
 
     table {
@@ -314,6 +324,10 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
 <section class="stats">
     <p><span id="stats-num-hits">0</span> hits</p>
 </section>
+
+<div id="histogram_container">
+<object id="histogram" type="image/svg+xml" data=""" + '"' + aggregation_url + '"' + """></object>
+</div>
 
 <script>
 var numHitsEl = document.getElementById("stats-num-hits");
