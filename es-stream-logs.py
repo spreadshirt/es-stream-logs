@@ -108,25 +108,14 @@ def filter_dict(source, fields):
             pass
     return res
 
-def stream_logs(es, dc='dc1', index="application-*", q=None, fmt="html", fields="all", separator=" ", **kwargs):
-    """ Contruct query and stream logs given the elasticsearch client and parameters. """
-
-    if fields != "all":
-        fields = fields.split(',')
-
-    from_timestamp = kwargs.get("from", "now-5m")
-    to_timestamp = kwargs.get("to", "now")
-    # remove from and to because they are not fields, None to prevent KeyError
-    kwargs.pop("from", None)
-    kwargs.pop("to", None)
-
-    last_timestamp = from_timestamp
-    seen = {}
+def create_query(from_timestamp, to_timestamp, interval="1h", **kwargs):
+    """ Create elasticsearch query from (query) parameters. """
 
     required_filters = []
     excluded_filters = []
-    if q:
-        required_filters.append({"query_string": {"query": q, "analyze_wildcard": True}})
+    query = kwargs.get("q", None)
+    if query:
+        required_filters.append({"query_string": {"query": query, "analyze_wildcard": True}})
 
     compare_ops = {"<": "lt", ">": "gt"}
     for key, val in kwargs.items():
@@ -143,8 +132,8 @@ def stream_logs(es, dc='dc1', index="application-*", q=None, fmt="html", fields=
             try:
                 filters.append({"range": {key: {compare_op: int(val[1:])}}})
             except ValueError:
-                yield f"value for range query on '{key}' must be a number, but was '{val[1:]}'"
-                return
+                msg = f"value for range query on '{key}' must be a number, but was '{val[1:]}'"
+                raise ValueError(msg)
         else:
             if "," in val:
                 filters.append({"bool" : {
@@ -157,6 +146,136 @@ def stream_logs(es, dc='dc1', index="application-*", q=None, fmt="html", fields=
             excluded_filters.extend(filters)
         else:
             required_filters.extend(filters)
+
+    timerange = {"range": {"@timestamp": {"gte": from_timestamp, "lt": to_timestamp}}}
+    return {
+        "size": 500,
+        "sort": [{"@timestamp":{"order": "asc"}}],
+        "aggs": {
+            "num_results": {
+                "date_histogram": {
+                    "field": "@timestamp",
+                    "interval": interval,
+                    "time_zone": "UTC",
+                    "min_doc_count": 1
+                }
+            }
+        },
+        "query": {
+            "bool": {
+                "must": [*required_filters, timerange],
+                "must_not": excluded_filters
+                }
+            }
+        }
+
+def aggregation(es, index="application-*", fields="all", **kwargs):
+    """ Do aggregation query. """
+
+    # remove unused params
+    kwargs.pop('dc', None)
+
+    if fields != "all":
+        fields = fields.split(',')
+
+    from_timestamp = kwargs.get("from", "now-5m")
+    to_timestamp = kwargs.get("to", "now")
+    # remove from and to because they are not fields, None to prevent KeyError
+    kwargs.pop("from", None)
+    kwargs.pop("to", None)
+
+    query_str = ", ".join(map(lambda item: str(item[0])+"="+str(item[1]), kwargs.items()))
+
+    query = create_query(from_timestamp, to_timestamp, **kwargs)
+    resp = es.search(index=index, body=query)
+
+    total_count = 0
+    max_count = 0
+    num_results_buckets = resp['aggregations']['num_results']['buckets']
+    for bucket in num_results_buckets:
+        total_count += bucket['doc_count']
+        max_count = max(max_count, bucket['doc_count'])
+
+    img = """<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" class="chart" width="1400" height="125">
+    <title id="title">Aggregation for query: """ + query_str + """</title>
+    <style>
+    svg {
+        border: 1px solid #ddd;
+        padding: 0.5em;
+        font-family: monospace;
+    }
+
+    rect {
+        fill: #00b2a5;
+        fill-opacity: 0.5;
+        stroke-width: 1px;
+        stroke: #00b2a5;
+    }
+
+    g text {
+        display: none;
+    }
+
+    g:hover text {
+        display: block;
+    }
+    </style>
+    """
+
+
+
+    num_hits = resp['hits']['total']['value']
+    avg_count = 0
+
+    if num_results_buckets:
+        bucket_width = (1400 / len(num_results_buckets)) - 5
+        avg_count = int(total_count / len(num_results_buckets))
+
+    img += f"""<text x="10" y="14">hits: {num_hits}, max: {max_count}, avg: {avg_count}</text>"""
+
+    pos_x = 0
+    for bucket in num_results_buckets:
+        count = bucket['doc_count']
+        key = bucket['key_as_string']
+        height = int((count / max_count) * 100)
+        img += f"""<g>
+    <rect width="{bucket_width}" height="{height}%" y="{100-height}%" x="{pos_x}"></rect>
+    <text y="90%" x="{pos_x}">{key} (count: {count})</text>
+</g>
+"""
+
+        pos_x += bucket_width + 5
+
+    img += "</svg>"
+
+    #return Response(json.dumps(resp), content_type="application/json")
+    return Response(img, content_type="image/svg+xml")
+
+@APP.route('/aggregation.svg')
+def serve_aggregation():
+    """ Serve aggregation view. """
+
+    es_client, resp = es_client_from(request)
+    if resp:
+        return resp
+
+    return aggregation(es_client, **request.args)
+
+def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", separator=" ", **kwargs):
+    """ Contruct query and stream logs given the elasticsearch client and parameters. """
+
+    if fields != "all":
+        fields = fields.split(',')
+
+    from_timestamp = kwargs.get("from", "now-5m")
+    to_timestamp = kwargs.get("to", "now")
+    # remove from and to because they are not fields, None to prevent KeyError
+    kwargs.pop("from", None)
+    kwargs.pop("to", None)
+
+    last_timestamp = from_timestamp
+    seen = {}
 
     # send something so we return an initial response
     yield ""
@@ -222,19 +341,9 @@ window.setInterval(function() {
 """
 
     while True:
-        timerange = {"range": {"@timestamp": {"gte": last_timestamp, "lt": to_timestamp}}}
         try:
-            resp = es.search(index=index,
-                    body={
-                        "size": 500,
-                        "sort": [{"@timestamp":{"order": "asc"}}],
-                        "query": {
-                            "bool": {
-                                "must": [*required_filters, timerange],
-                                "must_not": excluded_filters
-                                }
-                            }
-                        })
+            query = create_query(last_timestamp, to_timestamp, **kwargs)
+            resp = es.search(index=index, body=query)
         except elasticsearch.ConnectionTimeout as ex:
             print(ex)
             yield " " # keep connection open
@@ -306,24 +415,34 @@ window.setInterval(function() {
 
         time.sleep(1)
 
-# curl 'http://kibana-dc1.example.com/elasticsearch/_msearch' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:67.0) Gecko/20100101 Firefox/67.0' -H 'Accept: application/json, text/plain, */*' -H 'Accept-Language: en-US,en;q=0.5' --compressed -H 'Referer: http://kibana-dc1.example.com/app/kibana' -H 'content-type: application/x-ndjson' -H 'kbn-version: 5.6.9' -H 'DNT: 1' -H 'Connection: keep-alive' -H 'Pragma: no-cache' -H 'Cache-Control: no-cache' --data $'{"index":["application-2019.02.21"],"ignore_unavailable":true,"preference":1550757631050}\n{"version":true,"size":500,"sort":[{"@timestamp":{"order":"desc","unmapped_type":"boolean"}}],"query":{"bool":{"must":[{"match_all":{}},{"match_phrase":{"level":{"query":"ERROR"}}},{"match_phrase":{"application_name":{"query":"api"}}},{"range":{"@timestamp":{"gte":1550757641281,"lte":1550758541281,"format":"epoch_millis"}}}],"must_not":[]}},"_source":{"excludes":[]},"aggs":{"2":{"date_histogram":{"field":"@timestamp","interval":"30s","time_zone":"UTC","min_doc_count":1}}},"stored_fields":["*"],"script_fields":{},"docvalue_fields":["@timestamp","time"],"highlight":{"pre_tags":["@kibana-highlighted-field@"],"post_tags":["@/kibana-highlighted-field@"],"fields":{"*":{"highlight_query":{"bool":{"must":[{"match_all":{}},{"match_phrase":{"level":{"query":"ERROR"}}},{"match_phrase":{"application_name":{"query":"api"}}},{"range":{"@timestamp":{"gte":1550757641281,"lte":1550758541281,"format":"epoch_millis"}}}],"must_not":[]}}}},"fragment_size":2147483647}}\n'
-@APP.route('/logs')
-def serve_logs():
-    """ Serve logs. """
+def es_client_from(req):
+    """ Create elastic search client from request. """
+
     if ES_USER is None or ES_USER is None:
-        if not request.authorization:
-            return Response('Could not verify your access level for that URL.\n'
+        if not req.authorization:
+            resp = Response('Could not verify your access level for that URL.\n'
                             'You have to login with proper credentials',
                             401,
                             {'WWW-Authenticate': 'Basic realm="Login with  LDAP credentials"'})
+            return None, resp
 
-    datacenter = request.args.get('dc') or 'dc1'
+    datacenter = req.args.get('dc') or 'dc1'
     if datacenter not in DATACENTERS:
         abort(400, f"unknown datacenter '{datacenter}'")
 
     es_client = Elasticsearch([f"https://es-log-{datacenter}.example.com:443"],
-                              http_auth=(ES_USER or request.authorization.username,
-                                         ES_PASSWORD or request.authorization.password))
+                              http_auth=(ES_USER or req.authorization.username,
+                                         ES_PASSWORD or req.authorization.password))
+
+    return es_client, None
+
+# curl 'http://kibana-dc1.example.com/elasticsearch/_msearch' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:67.0) Gecko/20100101 Firefox/67.0' -H 'Accept: application/json, text/plain, */*' -H 'Accept-Language: en-US,en;q=0.5' --compressed -H 'Referer: http://kibana-dc1.example.com/app/kibana' -H 'content-type: application/x-ndjson' -H 'kbn-version: 5.6.9' -H 'DNT: 1' -H 'Connection: keep-alive' -H 'Pragma: no-cache' -H 'Cache-Control: no-cache' --data $'{"index":["application-2019.02.21"],"ignore_unavailable":true,"preference":1550757631050}\n{"version":true,"size":500,"sort":[{"@timestamp":{"order":"desc","unmapped_type":"boolean"}}],"query":{"bool":{"must":[{"match_all":{}},{"match_phrase":{"level":{"query":"ERROR"}}},{"match_phrase":{"application_name":{"query":"api"}}},{"range":{"@timestamp":{"gte":1550757641281,"lte":1550758541281,"format":"epoch_millis"}}}],"must_not":[]}},"_source":{"excludes":[]},"aggs":{"2":{"date_histogram":{"field":"@timestamp","interval":"30s","time_zone":"UTC","min_doc_count":1}}},"stored_fields":["*"],"script_fields":{},"docvalue_fields":["@timestamp","time"],"highlight":{"pre_tags":["@kibana-highlighted-field@"],"post_tags":["@/kibana-highlighted-field@"],"fields":{"*":{"highlight_query":{"bool":{"must":[{"match_all":{}},{"match_phrase":{"level":{"query":"ERROR"}}},{"match_phrase":{"application_name":{"query":"api"}}},{"range":{"@timestamp":{"gte":1550757641281,"lte":1550758541281,"format":"epoch_millis"}}}],"must_not":[]}}}},"fragment_size":2147483647}}\n'
+@APP.route('/logs')
+def serve_logs():
+    """ Serve logs. """
+    es_client, resp = es_client_from(request)
+    if resp:
+        return resp
 
     fmt = request.args.get("fmt", "html")
     content_type = "text/html"
