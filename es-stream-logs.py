@@ -141,17 +141,35 @@ def stream_logs():
         yield ""
 
         if fmt == "html":
-            if fields == "all":
-                yield "must set fields"
-                return
-
             yield """<!doctype html>
 <html>
+<head>
+    <style>
+        thead tr {
+            font-weight: bold;
+        }
+
+        td {
+            margin-right: 1em;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+            font-family: monospace;
+            min-width: 10em;
+            max-width: 30em;
+            word-wrap: break-word;
+            overflow-y: auto;
+            vertical-align: top;
+        }
+    </style>
+</head>
 <body>
 <table>
 <thead>
 <tr>
 """
+
+            if fields == "all":
+                fields = ["@timestamp", "hostname", "level", "message", "thread_name", "stack_trace"]
 
             for field in fields:
                 yield f"<td>{field}</td>"
@@ -207,11 +225,17 @@ def stream_logs():
                         source = filter_dict(source, fields)
                     yield json.dumps(source)
                 if fmt == "html":
-                    source = filter_dict(source, fields)
+                    try:
+                        trace_id = nested_get(source, ["tracing", "trace_id"])
+                        trace_id_link = f"<a href=\"https://tracing.example.com/?traceId={trace_id}&dc={dc}\">{trace_id}</a>"
+                        source["tracing"]["trace_id"] = trace_id_link
+                    except KeyError:
+                        pass
 
+                    source = filter_dict(source, fields)
                     yield "<tr>\n"
                     for field in fields:
-                        yield f"<td>{source.get(field, '')}</td>"
+                        yield f"    <td>{source.get(field, '')}</td>\n"
                     yield "</tr>\n"
                 else:
                     if fields != "all":
