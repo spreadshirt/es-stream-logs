@@ -25,6 +25,11 @@ ES_PASSWORD = os.environ.get('ES_PASSWORD', None)
 
 DATACENTERS = ['dc1', 'dc3', 'dc2']
 
+@APP.route('/favicon.ico')
+def favicon_route():
+    """ Favicon (search glass). """
+    return APP.send_static_file('search.ico')
+
 @APP.route('/')
 def index_route():
     """ GET / """
