@@ -129,21 +129,26 @@ def stream_logs(es, dc='dc1', index="application-*", q=None, fmt="html", fields=
         required_filters.append({"query_string": {"query": q, "analyze_wildcard": True}})
 
     for key, val in kwargs.items():
+        exclude = False
+        if key.startswith("-"):
+            exclude = True
+            key = key[1:]
+
+        filters = []
         if val == "":
-            if key.startswith("-"):
-                excluded_filters.append({"exists": {"field": key[1:]}})
-            else:
-                required_filters.append({"exists": {"field": key}})
+            filters.append({"exists": {"field": key}})
         else:
             if "," in val:
-                required_filters.append({"bool" : {
-                    "should": [{"term": {key: v}} for v in val.split(',')]
+                filters.append({"bool" : {
+                    "should": [{"match": {key: v}} for v in val.split(',')]
                     }})
-            elif val.startswith("-"):
-                excluded_filters.append({"term": {key: val[1:]}})
             else:
-                required_filters.append({"term": {key: val}})
+                filters.append({"match": {key: val}})
 
+        if exclude:
+            excluded_filters.extend(filters)
+        else:
+            required_filters.extend(filters)
 
     # send something so we return an initial response
     yield ""
