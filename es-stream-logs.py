@@ -128,17 +128,24 @@ def stream_logs():
         seen = {}
 
         required_filters = []
+        excluded_filters = []
         if q:
             required_filters.append({"query_string": {"query": q, "analyze_wildcard": True}})
 
         for key, val in kwargs.items():
             if val == "":
                 if key.startswith("-"):
-                    required_filters.append({"bool": {"must_not": {"exists": {"field": key[1:]}}}})
+                    excluded_filters.append({"exists": {"field": key[1:]}})
                 else:
                     required_filters.append({"exists": {"field": key}})
             else:
-                required_filters.append({"bool" : {"should": [{"term": {key: v}} for v in val.split(',')]}})
+                if "," in val:
+                    required_filters.append({"bool" : {"should": [{"term": {key: v}} for v in val.split(',')]}})
+                elif val.startswith("-"):
+                    excluded_filters.append({"term": {key: val[1:]}})
+                else:
+                    required_filters.append({"term": {key: val}})
+
 
         # send something so we return an initial response
         yield ""
@@ -197,7 +204,10 @@ def stream_logs():
                             "size": 500,
                             "sort": [{"@timestamp":{"order": "asc"}}],
                             "query": {
-                                "bool": {"must": [*required_filters, timerange]}
+                                "bool": {
+                                    "must": [*required_filters, timerange],
+                                    "must_not": excluded_filters
+                                    }
                                 }
                             })
             except elasticsearch.ConnectionTimeout as ex:
