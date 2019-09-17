@@ -145,6 +145,10 @@ def stream_logs():
 <html>
 <head>
     <style>
+        table {
+            width: 100%;
+        }
+
         thead tr {
             font-weight: bold;
         }
@@ -154,7 +158,6 @@ def stream_logs():
             border-bottom: 1px solid #ddd;
             font-size: 14px;
             font-family: monospace;
-            min-width: 10em;
             max-width: 30em;
             word-wrap: break-word;
             overflow-y: auto;
