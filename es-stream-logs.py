@@ -208,6 +208,7 @@ def stream_logs(es, dc='dc1', index="application-*", q=None, fmt="html", fields=
                         })
         except elasticsearch.ConnectionTimeout as ex:
             print(ex)
+            yield " " # keep connection open
             time.sleep(1)
             continue
         except elasticsearch.AuthenticationException as ex:
