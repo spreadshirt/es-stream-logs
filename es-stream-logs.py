@@ -264,7 +264,7 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
     """ Contruct query and stream logs given the elasticsearch client and parameters. """
 
     kwargs_query = map(lambda item: item[0] + "=" + item[1],
-            list(kwargs.items()) + [('dc', dc), ('fields', fields)])
+                       [('dc', dc)] + list(kwargs.items()))
     aggregation_url = '/aggregation.svg?' + "&".join(kwargs_query)
 
     if fields != "all":
