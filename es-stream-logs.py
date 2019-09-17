@@ -30,7 +30,7 @@ def index_route():
     """ GET / """
 
     return """
-<!doctype html
+<!doctype html>
 <html>
 <head>
     <meta charset="utf-8" />
