@@ -114,7 +114,7 @@ def stream_logs():
     def now_ms():
         return int(datetime.utcnow().timestamp()*1000)
 
-    def results(es, dc='dc1', index="application-*", q=None, fmt="text", fields="all", separator=" ", **kwargs):
+    def results(es, dc='dc1', index="application-*", q=None, fmt="html", fields="all", separator=" ", **kwargs):
         if fields != "all":
             fields = fields.split(',')
 
@@ -289,12 +289,12 @@ def stream_logs():
                        http_auth=(ES_USER or request.authorization.username,
                                   ES_PASSWORD or request.authorization.password))
 
-    fmt = request.args.get("fmt", "text")
-    content_type = "text/plain"
+    fmt = request.args.get("fmt", "html")
+    content_type = "text/html"
     if fmt == "json":
         content_type = "application/json"
-    elif fmt == "html":
-        content_type = "text/html"
+    elif fmt == "text":
+        content_type = "text/plain"
 
     return Response(results(es, **request.args), content_type=content_type+'; charset=utf-8')
 
