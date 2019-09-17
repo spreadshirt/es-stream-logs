@@ -12,6 +12,7 @@ See <http://localhost:3028> for docs and examples.
 - [ ] dynamic query modification ("click to exclude/include" like in kibana, "+/-" buttons)
 - [ ] generate links in rundeck-bot
 - [ ] ads (on devblog ;))
+- [ ] show histogram for timerange on top by default (only for first query?)
 
 ## Misc
 
