@@ -182,7 +182,7 @@ def aggregation(es, index="application-*", **kwargs):
     kwargs.pop("from", None)
     kwargs.pop("to", None)
 
-    query_str = ", ".join(map(lambda item: str(item[0])+"="+str(item[1]), kwargs.items()))
+    query_str = ", ".join([f"{item[0]}={item[1]}" for item in kwargs.items()])
 
     query = create_query(from_timestamp, to_timestamp, **kwargs)
     resp = es.search(index=index, body=query)
