@@ -195,7 +195,7 @@ def aggregation(es, index="application-*", **kwargs):
         max_count = max(max_count, bucket['doc_count'])
 
     img = """<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" class="chart" width="1400" height="125">
+<svg xmlns="http://www.w3.org/2000/svg" class="chart" width="100%" height="125">
     <title id="title">Aggregation for query: """ + query_str + """</title>
     <style>
     svg {
@@ -221,29 +221,27 @@ def aggregation(es, index="application-*", **kwargs):
     </style>
     """
 
-
-
     #num_hits = resp['hits']['total']['value']
     avg_count = 0
 
     if num_results_buckets:
-        bucket_width = (1400 / len(num_results_buckets)) - 5
+        bucket_width = (100.0 / len(num_results_buckets))
         avg_count = int(total_count / len(num_results_buckets))
 
     img += f"""<text x="10" y="14">max: {max_count}, avg: {avg_count}</text>"""
 
     pos_x = 0
-    for bucket in num_results_buckets:
+    for idx, bucket in enumerate(num_results_buckets):
         count = bucket['doc_count']
         key = bucket['key_as_string']
         height = int((count / max_count) * 100)
         img += f"""<g>
-    <rect width="{bucket_width}" height="{height}%" y="{100-height}%" x="{pos_x}"></rect>
-    <text y="90%" x="{pos_x}">{key} (count: {count})</text>
+    <rect width="{bucket_width}%" height="{height}%" y="{100-height}%" x="{pos_x}%"></rect>
+    <text y="90%" x="{pos_x}%">{key} (count: {count})</text>
 </g>
 """
 
-        pos_x += bucket_width + 5
+        pos_x = bucket_width * idx
 
     img += "</svg>"
 
