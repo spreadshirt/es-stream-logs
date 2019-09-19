@@ -171,7 +171,39 @@ def create_query(from_timestamp, to_timestamp, aggregate=False, num_results=500,
         }
     return query
 
-def aggregation(es, index="application-*", **kwargs):
+def parse_timestamp(timestamp):
+    """ Parse elasticsearch-style timestamp, e.g. now-3h, 2019-09-09T00:00:00Z or epoch_millis. """
+    now = time.time()
+    if timestamp == "now":
+        return now
+    if timestamp.startswith("now-"):
+        suffix = timestamp[len(timestamp)-1]
+        num = int(timestamp[len("now-"):len(timestamp)-1])
+        if suffix == "s":
+            return now - num
+        if suffix == "m":
+            return now - num * 60
+        if suffix == "h":
+            return now - num * 60 * 60
+        if suffix == "d":
+            return now - num * 24 * 60 * 60
+
+        raise ValueError(f"could not parse timestamp '{timestamp}'")
+
+    # epoch millis
+    try:
+        return int(timestamp) / 1000
+    except ValueError:
+        pass
+
+    try:
+        return time.mktime(time.strptime('2019-09-09T00:00:03Z', '%Y-%m-%dT%H:%M:%SZ'))
+    except ValueError:
+        pass
+
+    raise ValueError(f"could not parse timestamp '{timestamp}'")
+
+def aggregation(es, index="application-*", interval="auto", **kwargs):
     """ Do aggregation query. """
 
     # remove unused params
@@ -184,9 +216,20 @@ def aggregation(es, index="application-*", **kwargs):
     kwargs.pop("from", None)
     kwargs.pop("to", None)
 
+    if interval == "auto":
+        interval = "1h"
+        try:
+            from_time = parse_timestamp(from_timestamp)
+            to_time = parse_timestamp(to_timestamp)
+            interval_s = max(1, (to_time - from_time) / 100)
+            interval = f"{int(interval_s)}s"
+        except ValueError as ex:
+            print("Could not guess interval: ", ex)
+
     query_str = ", ".join([f"{item[0]}={item[1]}" for item in kwargs.items()])
 
-    query = create_query(from_timestamp, to_timestamp, num_results=0, aggregate=True, **kwargs)
+    query = create_query(from_timestamp, to_timestamp,
+            interval=interval, num_results=0, aggregate=True, **kwargs)
     resp = es.search(index=index, body=query)
 
     total_count = 0
