@@ -364,6 +364,10 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
     .source-hidden {
         display: none;
     }
+
+    .source pre {
+        white-space: pre-wrap;
+    }
 </style>
 </head>
 <body>
@@ -476,7 +480,7 @@ document.body.addEventListener('click', function(ev) {
                 for field in fields:
                     yield f"    <td>{source.get(field, '')}</td>\n"
                 yield "</tr>\n"
-                yield f"<tr class=\"source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
+                yield f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
             else:
                 if fields != "all":
                     yield separator.join((str(val) for val in source.values()))
