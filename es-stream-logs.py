@@ -108,7 +108,7 @@ def filter_dict(source, fields):
             pass
     return res
 
-def create_query(from_timestamp, to_timestamp, interval="1h", **kwargs):
+def create_query(from_timestamp, to_timestamp, aggregate=False, interval="1h", **kwargs):
     """ Create elasticsearch query from (query) parameters. """
 
     required_filters = []
@@ -148,10 +148,18 @@ def create_query(from_timestamp, to_timestamp, interval="1h", **kwargs):
             required_filters.extend(filters)
 
     timerange = {"range": {"@timestamp": {"gte": from_timestamp, "lt": to_timestamp}}}
-    return {
+    query = {
         "size": 500,
         "sort": [{"@timestamp":{"order": "asc"}}],
-        "aggs": {
+        "query": {
+            "bool": {
+                "must": [*required_filters, timerange],
+                "must_not": excluded_filters
+                }
+            }
+        }
+    if aggregate:
+        query["aggs"] = {
             "num_results": {
                 "date_histogram": {
                     "field": "@timestamp",
@@ -160,14 +168,8 @@ def create_query(from_timestamp, to_timestamp, interval="1h", **kwargs):
                     "min_doc_count": 1
                 }
             }
-        },
-        "query": {
-            "bool": {
-                "must": [*required_filters, timerange],
-                "must_not": excluded_filters
-                }
-            }
         }
+    return query
 
 def aggregation(es, index="application-*", **kwargs):
     """ Do aggregation query. """
@@ -184,7 +186,7 @@ def aggregation(es, index="application-*", **kwargs):
 
     query_str = ", ".join([f"{item[0]}={item[1]}" for item in kwargs.items()])
 
-    query = create_query(from_timestamp, to_timestamp, **kwargs)
+    query = create_query(from_timestamp, to_timestamp, aggregate=True, **kwargs)
     resp = es.search(index=index, body=query)
 
     total_count = 0
