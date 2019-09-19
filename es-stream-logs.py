@@ -165,7 +165,7 @@ def create_query(from_timestamp, to_timestamp, aggregate=False, num_results=500,
                     "field": "@timestamp",
                     "interval": interval,
                     "time_zone": "UTC",
-                    "min_doc_count": 1
+                    "min_doc_count": 0
                 }
             }
         }
