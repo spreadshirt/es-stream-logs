@@ -16,7 +16,7 @@ import time
 from elasticsearch import Elasticsearch
 import elasticsearch
 
-from flask import Flask, Response, abort, request
+from flask import Flask, Response, abort, escape, request
 
 APP = Flask(__name__)
 
@@ -261,7 +261,7 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
     """ Contruct query and stream logs given the elasticsearch client and parameters. """
 
     kwargs_query = map(lambda item: item[0] + "=" + item[1],
-                       [('dc', dc)] + list(kwargs.items()))
+                       [('dc', dc), ('index', index)] + list(kwargs.items()))
     aggregation_url = '/aggregation.svg?' + "&".join(kwargs_query)
 
     if fields != "all":
@@ -317,6 +317,10 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
         overflow-y: auto;
         vertical-align: top;
     }
+
+    .source-hidden {
+        display: none;
+    }
 </style>
 </head>
 <body>
@@ -334,6 +338,28 @@ var numHitsEl = document.getElementById("stats-num-hits");
 window.setInterval(function() {
     numHitsEl.textContent = document.querySelectorAll("tbody tr").length;
 }, 1000);
+
+document.body.addEventListener('click', function(ev) {
+    if (!ev.target.classList.contains("toggle-expand")) {
+        return;
+    }
+
+    var isExpanded = ev.target.classList.contains("expanded");
+    var sourceContainer = ev.target.parentElement.nextElementSibling.firstElementChild;
+    if (!isExpanded) {
+        ev.target.classList.add("expanded");
+        var sourceContainer = ev.target.parentElement.nextElementSibling.firstElementChild;
+        var source = JSON.stringify(JSON.parse(ev.target.parentElement.dataset['source']), "", "  ");
+        var formattedSourceEl = document.createElement("pre");
+        formattedSourceEl.textContent = source;
+        sourceContainer.appendChild(formattedSourceEl);
+        sourceContainer.parentElement.classList.remove("source-hidden");
+    } else {
+        sourceContainer.removeChild(sourceContainer.firstElementChild);
+        sourceContainer.parentElement.classList.add("source-hidden");
+        ev.target.classList.remove("expanded");
+    }
+});
 </script>
 
 <table>
@@ -344,6 +370,7 @@ window.setInterval(function() {
         if fields == "all":
             fields = ["@timestamp", "hostname", "level", "message", "thread_name", "stack_trace"]
 
+        yield "<td></td>" # for expand placeholder
         for field in fields:
             yield f"<td>{field}</td>"
 
@@ -382,6 +409,9 @@ window.setInterval(function() {
 
             yield "\n"
 
+            if fields != "all":
+                source = filter_dict(source, fields)
+
             timestamp = int(datetime.strptime(source['@timestamp'], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()*1000)
             if isinstance(last_timestamp, str):
                 last_timestamp = timestamp
@@ -389,8 +419,6 @@ window.setInterval(function() {
                 last_timestamp = max(timestamp, last_timestamp)
 
             if fmt == "json":
-                if fields != "all":
-                    source = filter_dict(source, fields)
                 yield json.dumps(source)
             if fmt == "html":
                 try:
@@ -400,14 +428,14 @@ window.setInterval(function() {
                 except KeyError:
                     pass
 
-                source = filter_dict(source, fields)
-                yield "<tr>\n"
+                yield f"<tr data-source=\"{escape(json.dumps(hit['_source']))}\">\n"
+                yield "<td class=\"toggle-expand\">+</td>"
                 for field in fields:
                     yield f"    <td>{source.get(field, '')}</td>\n"
                 yield "</tr>\n"
+                yield f"<tr class=\"source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
             else:
                 if fields != "all":
-                    source = filter_dict(source, fields)
                     yield separator.join((str(val) for val in source.values()))
                 else:
                     try:
