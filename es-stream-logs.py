@@ -235,13 +235,12 @@ def aggregation(es, index="application-*", **kwargs):
         count = bucket['doc_count']
         key = bucket['key_as_string']
         height = int((count / max_count) * 100)
+        pos_x = bucket_width * idx
         img += f"""<g>
     <rect width="{bucket_width}%" height="{height}%" y="{100-height}%" x="{pos_x}%"></rect>
     <text y="90%" x="{pos_x}%">{key} (count: {count})</text>
 </g>
 """
-
-        pos_x = bucket_width * idx
 
     img += "</svg>"
 
