@@ -260,6 +260,7 @@ def aggregation(es, index="application-*", interval="auto", **kwargs):
 
     g:hover text {
         display: block;
+        white-space: pre;
     }
     </style>
     """
@@ -281,7 +282,8 @@ def aggregation(es, index="application-*", interval="auto", **kwargs):
         pos_x = bucket_width * idx
         img += f"""<g>
     <rect width="{bucket_width}%" height="{height}%" y="{100-height}%" x="{pos_x}%"></rect>
-    <text y="90%" x="{pos_x}%">{key} (count: {count})</text>
+    <text y="75%" x="{pos_x}%">{key}
+(count: {count})</text>
 </g>
 """
 
