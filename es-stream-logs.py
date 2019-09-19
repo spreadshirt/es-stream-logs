@@ -201,8 +201,6 @@ def aggregation(es, index="application-*", **kwargs):
     <title id="title">Aggregation for query: """ + query_str + """</title>
     <style>
     svg {
-        border: 1px solid #ddd;
-        padding: 0.5em;
         font-family: monospace;
     }
 
@@ -296,7 +294,10 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
     }
 
     #histogram {
-        overflow: hidden;
+        width: 100%;
+        border: 1px solid #ddd;
+        padding: 0.5ex;
+        box-sizing: border-box;
     }
 
     table {
