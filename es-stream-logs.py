@@ -353,7 +353,8 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
     }
 
     td {
-        margin-right: 1em;
+        padding-right: 1em;
+        box-sizing: border-box;
         border-bottom: 1px solid #ddd;
         font-size: 14px;
         font-family: monospace;
@@ -361,6 +362,10 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
         word-wrap: break-word;
         overflow-y: auto;
         vertical-align: top;
+    }
+
+    td:first-of-type, td:last-of-type {
+        padding-right: 0;
     }
 
     .source-hidden {
