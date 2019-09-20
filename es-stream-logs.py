@@ -414,10 +414,12 @@ document.body.addEventListener('click', function(ev) {
         formattedSourceEl.textContent = source;
         sourceContainer.appendChild(formattedSourceEl);
         sourceContainer.parentElement.classList.remove("source-hidden");
+        ev.target.textContent = "-";
     } else {
         sourceContainer.removeChild(sourceContainer.firstElementChild);
         sourceContainer.parentElement.classList.add("source-hidden");
         ev.target.classList.remove("expanded");
+        ev.target.textContent = "+";
     }
 });
 </script>
