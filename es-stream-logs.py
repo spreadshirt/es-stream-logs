@@ -228,8 +228,8 @@ def aggregation(es, index="application-*", interval="auto", **kwargs):
 
     query_str = ", ".join([f"{item[0]}={item[1]}" for item in kwargs.items()])
 
-    query = create_query(from_timestamp, to_timestamp,
-            interval=interval, num_results=0, aggregate=True, **kwargs)
+    query = create_query(from_timestamp, to_timestamp, interval=interval,
+                         num_results=0, aggregate=True, **kwargs)
     resp = es.search(index=index, body=query)
 
     total_count = 0
