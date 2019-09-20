@@ -255,12 +255,14 @@ def aggregation(es, index="application-*", interval="auto", **kwargs):
     }
 
     g text {
+        text-anchor: middle;
+        white-space: pre;
+
         display: none;
     }
 
     g:hover text {
         display: block;
-        white-space: pre;
     }
     </style>
     """
