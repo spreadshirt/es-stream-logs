@@ -406,6 +406,19 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
     .source pre {
         white-space: pre-wrap;
     }
+
+    .source-flattened {
+        max-height: 115px;
+        line-height: 1.5em;
+        display: inline-block;
+        overflow: hidden;
+    }
+
+    .source-flattened .key {
+        padding: 0.1em 0.2em;
+        border-radius: 3px;
+        background-color: rgba(0, 0, 255, 0.1);
+    }
 </style>
 </head>
 <body>
@@ -500,7 +513,7 @@ document.body.addEventListener('click', function(ev) {
             if fields != "all":
                 source = filter_dict(source, fields)
 
-            timestamp = int(datetime.strptime(source['@timestamp'], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()*1000)
+            timestamp = int(datetime.strptime(hit['_source']['@timestamp'], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()*1000)
             if isinstance(last_timestamp, str):
                 last_timestamp = timestamp
             else:
@@ -514,6 +527,9 @@ document.body.addEventListener('click', function(ev) {
                 for field in fields:
                     val = source.get(field, '')
                     classes = ""
+                    if field == "_source":
+                        val = json.dumps(hit['_source'])
+                        val = f"<div class=\"source-flattened\">{val}</div>"
                     if field == "tracing.trace_id" and val:
                         classes += "break-strings"
                         trace_id = val
