@@ -304,6 +304,20 @@ def serve_aggregation():
 
     return aggregation(es_client, **request.args)
 
+def link_trace_logs(dc, index, from_timestamp, to_timestamp, trace_id):
+    """ Create link for logs about trace_id. """
+    params = []
+    if dc != 'dc1':
+        params.append(('dc', dc))
+    if index != 'application-*':
+        params.append(('index', index))
+    if from_timestamp != 'now-5m':
+        params.append(('from', from_timestamp))
+    if to_timestamp != 'now':
+        params.append(('to', to_timestamp))
+    params.append(('tracing.trace_id', trace_id))
+    return '/logs?' + '&'.join(map(lambda item: item[0] + "=" + item[1], params))
+
 def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", separator=" ", **kwargs):
     """ Contruct query and stream logs given the elasticsearch client and parameters. """
 
@@ -372,6 +386,17 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
 
     td.break-strings {
         overflow-wrap: anywhere;
+    }
+
+    td a.trace-logs {
+        visibility: hidden;
+    }
+
+    td:hover a.trace-logs {
+        text-decoration: none;
+        color: black;
+
+        visibility: visible;
     }
 
     .source-hidden {
@@ -491,7 +516,10 @@ document.body.addEventListener('click', function(ev) {
                     classes = ""
                     if field == "tracing.trace_id" and val:
                         classes += "break-strings"
-                        val = f"<a href=\"https://tracing.example.com/?traceId={val}&dc={dc}\">{val}</a>"
+                        trace_id = val
+                        val = f"<a href=\"https://tracing.example.com/?traceId={trace_id}&dc={dc}\">{trace_id}</a>"
+                        trace_id_logs = link_trace_logs(dc, index, from_timestamp, to_timestamp, trace_id)
+                        val += f" <a class=\"trace-logs\" title=\"Logs for trace_id {trace_id}\"href=\"{trace_id_logs}\">…</a>"
                     yield f"    <td class=\"{classes}\">{val}</td>\n"
                 yield "</tr>\n"
                 yield f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
