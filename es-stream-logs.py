@@ -368,6 +368,10 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
         padding-right: 0;
     }
 
+    td.break-strings {
+        overflow-wrap: anywhere;
+    }
+
     .source-hidden {
         display: none;
     }
@@ -422,7 +426,8 @@ document.body.addEventListener('click', function(ev) {
 """
 
         if fields == "all":
-            fields = ["@timestamp", "hostname", "level", "message", "thread_name", "stack_trace"]
+            fields = ["@timestamp", "hostname", "level", "message", "thread_name", "stack_trace",
+                      "tracing.trace_id"]
 
         yield "<td></td>" # for expand placeholder
         for field in fields:
@@ -475,17 +480,15 @@ document.body.addEventListener('click', function(ev) {
             if fmt == "json":
                 yield json.dumps(source)
             if fmt == "html":
-                try:
-                    trace_id = nested_get(source, ["tracing", "trace_id"])
-                    trace_id_link = f"<a href=\"https://tracing.example.com/?traceId={trace_id}&dc={dc}\">{trace_id}</a>"
-                    source["tracing"]["trace_id"] = trace_id_link
-                except KeyError:
-                    pass
-
                 yield f"<tr data-source=\"{escape(json.dumps(hit['_source']))}\">\n"
                 yield "<td class=\"toggle-expand\">+</td>"
                 for field in fields:
-                    yield f"    <td>{source.get(field, '')}</td>\n"
+                    val = source.get(field, '')
+                    classes = ""
+                    if field == "tracing.trace_id" and val:
+                        classes += "break-strings"
+                        val = f"<a href=\"https://tracing.example.com/?traceId={val}&dc={dc}\">{val}</a>"
+                    yield f"    <td class=\"{classes}\">{val}</td>\n"
                 yield "</tr>\n"
                 yield f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
             else:
