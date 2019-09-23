@@ -534,7 +534,7 @@ document.body.addEventListener('click', function(ev) {
                         classes += "break-strings"
                         trace_id = val
                         val = f"<a href=\"https://tracing.example.com/?traceId={trace_id}&dc={dc}\">{trace_id}</a>"
-                        trace_id_logs = link_trace_logs(dc, index, from_timestamp, to_timestamp, trace_id)
+                        trace_id_logs = link_trace_logs(dc, index, 'now-14d', to_timestamp, trace_id)
                         val += f" <a class=\"trace-logs\" title=\"Logs for trace_id {trace_id}\"href=\"{trace_id_logs}\">…</a>"
                     yield f"    <td class=\"{classes}\">{val}</td>\n"
                 yield "</tr>\n"
