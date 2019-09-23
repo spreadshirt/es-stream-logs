@@ -1,0 +1,74 @@
+.stats {
+    font-family: monospace;
+}
+
+#histogram_container {
+    height: 130px;
+}
+
+#histogram {
+    width: 100%;
+    border: 1px solid #ddd;
+    padding: 0.5ex;
+    box-sizing: border-box;
+}
+
+table {
+    width: 100%;
+}
+
+thead tr {
+    font-weight: bold;
+}
+
+td {
+    padding-right: 1em;
+    box-sizing: border-box;
+    border-bottom: 1px solid #ddd;
+    font-size: 14px;
+    font-family: monospace;
+    max-width: 30em;
+    word-wrap: break-word;
+    overflow-y: auto;
+    vertical-align: top;
+}
+
+td:first-of-type, td:last-of-type {
+    padding-right: 0;
+}
+
+td.break-strings {
+    overflow-wrap: anywhere;
+}
+
+td a.trace-logs {
+    visibility: hidden;
+}
+
+td:hover a.trace-logs {
+    text-decoration: none;
+    color: black;
+
+    visibility: visible;
+}
+
+.source-hidden {
+    display: none;
+}
+
+.source pre {
+    white-space: pre-wrap;
+}
+
+.source-flattened {
+    max-height: 115px;
+    line-height: 1.5em;
+    display: inline-block;
+    overflow: hidden;
+}
+
+.source-flattened .key {
+    padding: 0.1em 0.2em;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 255, 0.1);
+}

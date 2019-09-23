@@ -344,82 +344,7 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
         yield """<!doctype html>
 <html>
 <head>
-<style>
-    .stats {
-        font-family: monospace;
-    }
-
-    #histogram_container {
-        height: 130px;
-    }
-
-    #histogram {
-        width: 100%;
-        border: 1px solid #ddd;
-        padding: 0.5ex;
-        box-sizing: border-box;
-    }
-
-    table {
-        width: 100%;
-    }
-
-    thead tr {
-        font-weight: bold;
-    }
-
-    td {
-        padding-right: 1em;
-        box-sizing: border-box;
-        border-bottom: 1px solid #ddd;
-        font-size: 14px;
-        font-family: monospace;
-        max-width: 30em;
-        word-wrap: break-word;
-        overflow-y: auto;
-        vertical-align: top;
-    }
-
-    td:first-of-type, td:last-of-type {
-        padding-right: 0;
-    }
-
-    td.break-strings {
-        overflow-wrap: anywhere;
-    }
-
-    td a.trace-logs {
-        visibility: hidden;
-    }
-
-    td:hover a.trace-logs {
-        text-decoration: none;
-        color: black;
-
-        visibility: visible;
-    }
-
-    .source-hidden {
-        display: none;
-    }
-
-    .source pre {
-        white-space: pre-wrap;
-    }
-
-    .source-flattened {
-        max-height: 115px;
-        line-height: 1.5em;
-        display: inline-block;
-        overflow: hidden;
-    }
-
-    .source-flattened .key {
-        padding: 0.1em 0.2em;
-        border-radius: 3px;
-        background-color: rgba(0, 0, 255, 0.1);
-    }
-</style>
+    <link rel="stylesheet" href="/static/pretty.css" />
 </head>
 <body>
 
@@ -431,64 +356,7 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
 <object id="histogram" type="image/svg+xml" data=""" + '"' + aggregation_url + '"' + """></object>
 </div>
 
-<script>
-var numHitsEl = document.getElementById("stats-num-hits");
-window.setInterval(function() {
-    numHitsEl.textContent = document.querySelectorAll("tbody tr.row").length;
-}, 1000);
-
-document.body.addEventListener('click', function(ev) {
-    if (ev.target.classList.contains("toggle-expand")) {
-        expandSource(ev.target);
-        return;
-    }
-
-    if (ev.target.classList.contains("field")) {
-        collectFieldStats(ev.target);
-        return;
-    }
-});
-
-function collectFieldStats(field) {
-    var values = document.getElementsByClassName(field.dataset['class']);
-    var total = 0;
-    window.stats = {};
-    for (var i = 0; i < values.length; i++) {
-        var value = values[i].textContent;
-        stats[value] = (stats[value] || 0) + 1;
-    };
-    var top10 = Object.entries(stats).sort(([val1, cnt1], [val2, cnt2]) => cnt2 - cnt1).slice(0, 10);
-    top10 = top10.map(([val, cnt]) => {
-        var percent = Math.trunc((cnt / values.length) * 10000) / 100;
-        val = val.replace(/[\\n\\t]+/g, " ");
-        if (val.length > 79) {
-            val = val.slice(0, 79) + "...";
-        }
-        return `${val} = ${cnt} (${percent}%)`
-    }).join("\\n");
-    alert(`Top 10 values of '${field.textContent}' in ${values.length} records:\n\n` + top10);
-}
-
-function expandSource(element) {
-    var isExpanded = element.classList.contains("expanded");
-    var sourceContainer = element.parentElement.nextElementSibling.firstElementChild;
-    if (!isExpanded) {
-        element.classList.add("expanded");
-        var sourceContainer = element.parentElement.nextElementSibling.firstElementChild;
-        var source = JSON.stringify(JSON.parse(element.parentElement.dataset['source']), "", "  ");
-        var formattedSourceEl = document.createElement("pre");
-        formattedSourceEl.textContent = source;
-        sourceContainer.appendChild(formattedSourceEl);
-        sourceContainer.parentElement.classList.remove("source-hidden");
-        element.textContent = "-";
-    } else {
-        sourceContainer.removeChild(sourceContainer.firstElementChild);
-        sourceContainer.parentElement.classList.add("source-hidden");
-        element.classList.remove("expanded");
-        element.textContent = "+";
-    }
-}
-</script>
+<script src="/static/enhance.js" defer async></script>
 
 <table>
 <thead>
