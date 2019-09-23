@@ -443,7 +443,31 @@ document.body.addEventListener('click', function(ev) {
         return;
     }
 
+    if (ev.target.classList.contains("field")) {
+        collectFieldStats(ev.target);
+        return;
+    }
 });
+
+function collectFieldStats(field) {
+    var values = document.getElementsByClassName(field.dataset['class']);
+    var total = 0;
+    window.stats = {};
+    for (var i = 0; i < values.length; i++) {
+        var value = values[i].textContent;
+        stats[value] = (stats[value] || 0) + 1;
+    };
+    var top10 = Object.entries(stats).sort(([val1, cnt1], [val2, cnt2]) => cnt2 - cnt1).slice(0, 10);
+    top10 = top10.map(([val, cnt]) => {
+        var percent = Math.trunc((cnt / values.length) * 10000) / 100;
+        val = val.replace(/[\\n\\t]+/g, " ");
+        if (val.length > 79) {
+            val = val.slice(0, 79) + "...";
+        }
+        return `${val} = ${cnt} (${percent}%)`
+    }).join("\\n");
+    alert(`Top 10 values of '${field.textContent}' in ${values.length} records:\n\n` + top10);
+}
 
 function expandSource(element) {
     var isExpanded = element.classList.contains("expanded");
@@ -477,7 +501,7 @@ function expandSource(element) {
 
         yield "<td></td>" # for expand placeholder
         for field in fields:
-            yield f"<td>{field}</td>"
+            yield f"<td class=\"field\" data-class=\"field-{field}\">{field}</td>"
 
         yield """
 </tr>
@@ -530,17 +554,17 @@ function expandSource(element) {
                 yield "<td class=\"toggle-expand\">+</td>"
                 for field in fields:
                     val = source.get(field, '')
-                    classes = ""
+                    classes = [f"field-{field}"]
                     if field == "_source":
                         val = json.dumps(hit['_source'])
                         val = f"<div class=\"source-flattened\">{val}</div>"
                     if field == "tracing.trace_id" and val:
-                        classes += "break-strings"
+                        classes += ["break-strings"]
                         trace_id = val
                         val = f"<a href=\"https://tracing.example.com/?traceId={trace_id}&dc={dc}\">{trace_id}</a>"
                         trace_id_logs = link_trace_logs(dc, index, 'now-14d', to_timestamp, trace_id)
                         val += f" <a class=\"trace-logs\" title=\"Logs for trace_id {trace_id}\"href=\"{trace_id_logs}\">…</a>"
-                    yield f"    <td class=\"{classes}\">{val}</td>\n"
+                    yield f"    <td class=\"{' '.join(classes)}\">{val}</td>\n"
                 yield "</tr>\n"
                 yield f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
             else:
