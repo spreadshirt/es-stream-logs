@@ -438,28 +438,32 @@ window.setInterval(function() {
 }, 1000);
 
 document.body.addEventListener('click', function(ev) {
-    if (!ev.target.classList.contains("toggle-expand")) {
+    if (ev.target.classList.contains("toggle-expand")) {
+        expandSource(ev.target);
         return;
     }
 
-    var isExpanded = ev.target.classList.contains("expanded");
-    var sourceContainer = ev.target.parentElement.nextElementSibling.firstElementChild;
+});
+
+function expandSource(element) {
+    var isExpanded = element.classList.contains("expanded");
+    var sourceContainer = element.parentElement.nextElementSibling.firstElementChild;
     if (!isExpanded) {
-        ev.target.classList.add("expanded");
-        var sourceContainer = ev.target.parentElement.nextElementSibling.firstElementChild;
-        var source = JSON.stringify(JSON.parse(ev.target.parentElement.dataset['source']), "", "  ");
+        element.classList.add("expanded");
+        var sourceContainer = element.parentElement.nextElementSibling.firstElementChild;
+        var source = JSON.stringify(JSON.parse(element.parentElement.dataset['source']), "", "  ");
         var formattedSourceEl = document.createElement("pre");
         formattedSourceEl.textContent = source;
         sourceContainer.appendChild(formattedSourceEl);
         sourceContainer.parentElement.classList.remove("source-hidden");
-        ev.target.textContent = "-";
+        element.textContent = "-";
     } else {
         sourceContainer.removeChild(sourceContainer.firstElementChild);
         sourceContainer.parentElement.classList.add("source-hidden");
-        ev.target.classList.remove("expanded");
-        ev.target.textContent = "+";
+        element.classList.remove("expanded");
+        element.textContent = "+";
     }
-});
+}
 </script>
 
 <table>
