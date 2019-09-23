@@ -434,7 +434,7 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
 <script>
 var numHitsEl = document.getElementById("stats-num-hits");
 window.setInterval(function() {
-    numHitsEl.textContent = document.querySelectorAll("tbody tr").length;
+    numHitsEl.textContent = document.querySelectorAll("tbody tr.row").length;
 }, 1000);
 
 document.body.addEventListener('click', function(ev) {
@@ -522,7 +522,7 @@ document.body.addEventListener('click', function(ev) {
             if fmt == "json":
                 yield json.dumps(source)
             if fmt == "html":
-                yield f"<tr data-source=\"{escape(json.dumps(hit['_source']))}\">\n"
+                yield f"<tr class=\"row\" data-source=\"{escape(json.dumps(hit['_source']))}\">\n"
                 yield "<td class=\"toggle-expand\">+</td>"
                 for field in fields:
                     val = source.get(field, '')
