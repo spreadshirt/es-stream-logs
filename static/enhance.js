@@ -45,7 +45,6 @@ function expandSource(element) {
     var sourceContainer = element.parentElement.nextElementSibling.firstElementChild;
     if (!isExpanded) {
         element.classList.add("expanded");
-        var sourceContainer = element.parentElement.nextElementSibling.firstElementChild;
         var source = JSON.stringify(JSON.parse(element.parentElement.dataset['source']), "", "  ");
         var formattedSourceEl = document.createElement("pre");
         formattedSourceEl.textContent = source;
