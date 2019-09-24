@@ -13,6 +13,11 @@ document.body.addEventListener('click', function(ev) {
         collectFieldStats(ev.target);
         return;
     }
+
+    if (ev.target.classList.contains("filter")) {
+        addFilter(ev.target);
+        return;
+    }
 });
 
 function collectFieldStats(field) {
@@ -55,3 +60,12 @@ function expandSource(element) {
     }
 }
 
+function addFilter(element) {
+    var key = element.parentElement.dataset['field'];
+    if (element.classList.contains("filter-exclude")) {
+        key = "-" + key;
+    }
+    var u = new URL(location.href);
+    u.searchParams.append(key, element.parentElement.firstChild.textContent);
+    location.href = u.href;
+}

@@ -303,7 +303,7 @@ def serve_aggregation():
     if resp:
         return resp
 
-    return aggregation(es_client, **request.args)
+    return aggregation(es_client, **consolidate_args(request.args))
 
 def link_trace_logs(dc, index, from_timestamp, to_timestamp, trace_id):
     """ Create link for logs about trace_id. """
@@ -433,7 +433,11 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
                         val = f"<a href=\"https://tracing.example.com/?traceId={trace_id}&dc={dc}\">{trace_id}</a>"
                         trace_id_logs = link_trace_logs(dc, index, 'now-14d', to_timestamp, trace_id)
                         val += f" <a class=\"trace-logs\" title=\"Logs for trace_id {trace_id}\"href=\"{trace_id_logs}\">…</a>"
-                    yield f"    <td class=\"{' '.join(classes)}\">{val}</td>\n"
+                    yield f"    <td data-field=\"{field}\" class=\"{' '.join(classes)}\">"
+                    yield val
+                    yield "<span class=\"filter filter-include\">🔎</span>"
+                    yield "<span class=\"filter filter-exclude\">🗑</span>"
+                    yield "</td>\n"
                 yield "</tr>\n"
                 yield f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
             else:
@@ -480,6 +484,14 @@ def es_client_from(req):
 
     return es_client, None
 
+def consolidate_args(args):
+    """ Consolidates arguments from a werkzeug.datastructures.MultiDict
+        into our internal comma-separated format. """
+    res = {}
+    for key, values in args.to_dict(flat=False).items():
+        res[key] = ','.join(values)
+    return res
+
 # curl 'http://kibana-dc1.example.com/elasticsearch/_msearch' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:67.0) Gecko/20100101 Firefox/67.0' -H 'Accept: application/json, text/plain, */*' -H 'Accept-Language: en-US,en;q=0.5' --compressed -H 'Referer: http://kibana-dc1.example.com/app/kibana' -H 'content-type: application/x-ndjson' -H 'kbn-version: 5.6.9' -H 'DNT: 1' -H 'Connection: keep-alive' -H 'Pragma: no-cache' -H 'Cache-Control: no-cache' --data $'{"index":["application-2019.02.21"],"ignore_unavailable":true,"preference":1550757631050}\n{"version":true,"size":500,"sort":[{"@timestamp":{"order":"desc","unmapped_type":"boolean"}}],"query":{"bool":{"must":[{"match_all":{}},{"match_phrase":{"level":{"query":"ERROR"}}},{"match_phrase":{"application_name":{"query":"api"}}},{"range":{"@timestamp":{"gte":1550757641281,"lte":1550758541281,"format":"epoch_millis"}}}],"must_not":[]}},"_source":{"excludes":[]},"aggs":{"2":{"date_histogram":{"field":"@timestamp","interval":"30s","time_zone":"UTC","min_doc_count":1}}},"stored_fields":["*"],"script_fields":{},"docvalue_fields":["@timestamp","time"],"highlight":{"pre_tags":["@kibana-highlighted-field@"],"post_tags":["@/kibana-highlighted-field@"],"fields":{"*":{"highlight_query":{"bool":{"must":[{"match_all":{}},{"match_phrase":{"level":{"query":"ERROR"}}},{"match_phrase":{"application_name":{"query":"api"}}},{"range":{"@timestamp":{"gte":1550757641281,"lte":1550758541281,"format":"epoch_millis"}}}],"must_not":[]}}}},"fragment_size":2147483647}}\n'
 @APP.route('/logs')
 def serve_logs():
@@ -495,7 +507,7 @@ def serve_logs():
     elif fmt == "text":
         content_type = "text/plain"
 
-    return Response(stream_logs(es_client, **request.args),
+    return Response(stream_logs(es_client, **consolidate_args(request.args)),
                     content_type=content_type+'; charset=utf-8')
 
 def run_app():

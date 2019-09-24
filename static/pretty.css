@@ -37,6 +37,16 @@ td:first-of-type, td:last-of-type {
     padding-right: 0;
 }
 
+td .filter {
+    visibility: hidden;
+    margin-left: 1ex;
+    cursor: pointer;
+}
+
+td:hover .filter {
+    visibility: visible;
+}
+
 td.break-strings {
     overflow-wrap: anywhere;
 }
