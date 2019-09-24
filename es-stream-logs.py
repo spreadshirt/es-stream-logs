@@ -116,6 +116,7 @@ def create_query(from_timestamp, to_timestamp, aggregate=False, num_results=500,
     query = kwargs.get("q", None)
     if query:
         required_filters.append({"query_string": {"query": query, "analyze_wildcard": True}})
+        kwargs.pop("q", None)
 
     compare_ops = {"<": "lt", ">": "gt"}
     for key, val in kwargs.items():
