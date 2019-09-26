@@ -310,7 +310,8 @@ def serve_aggregation():
     if resp:
         return resp
 
-    return aggregation(es_client, **consolidate_args(request.args))
+    args = consolidate_args(request.args, exceptions=ONLY_ONCE_ARGUMENTS)
+    return aggregation(es_client, **args)
 
 def link_trace_logs(dc, index, from_timestamp, to_timestamp, trace_id):
     """ Create link for logs about trace_id. """
@@ -491,13 +492,18 @@ def es_client_from(req):
 
     return es_client, None
 
-def consolidate_args(args):
+def consolidate_args(args, exceptions=None):
     """ Consolidates arguments from a werkzeug.datastructures.MultiDict
         into our internal comma-separated format. """
     res = {}
     for key, values in args.to_dict(flat=False).items():
-        res[key] = ','.join(values)
+        if exceptions and key in exceptions:
+            res[key] = values[-1]
+        else:
+            res[key] = ','.join(values)
     return res
+
+ONLY_ONCE_ARGUMENTS = ["fmt", "from", "to", "dc", "index", "interval"]
 
 @APP.route('/logs')
 def serve_logs():
@@ -513,7 +519,8 @@ def serve_logs():
     elif fmt == "text":
         content_type = "text/plain"
 
-    return Response(stream_logs(es_client, **consolidate_args(request.args)),
+    args = consolidate_args(request.args, exceptions=ONLY_ONCE_ARGUMENTS)
+    return Response(stream_logs(es_client, **args),
                     content_type=content_type+'; charset=utf-8')
 
 def run_app():
