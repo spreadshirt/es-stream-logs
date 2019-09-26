@@ -422,7 +422,7 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
                 yield f"<tr class=\"row\" data-source=\"{escape(json.dumps(hit['_source']))}\">\n"
                 yield "<td class=\"toggle-expand\">+</td>"
                 for field in fields:
-                    val = source.get(field, '')
+                    val = escape(source.get(field, ''))
                     classes = [f"field-{field}"]
                     if field == "_source":
                         val = json.dumps(hit['_source'])
