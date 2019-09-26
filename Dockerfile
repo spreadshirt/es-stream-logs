@@ -4,6 +4,7 @@ RUN pip install elasticsearch certifi flask
 
 ADD static /app/static
 
+COPY config.json /app/
 COPY *.py /app/
 
-CMD python /app/es-stream-logs.py 0.0.0.0 10006
+CMD python /app/es-stream-logs.py /app/config.json 0.0.0.0 3028

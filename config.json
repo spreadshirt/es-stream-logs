@@ -1,0 +1,8 @@
+{
+  "default_endpoint": "dc1",
+  "endpoints": {
+    "dc3": {"url": "https://elasticsearch-dc3.example.com:443"},
+    "dc1": {"url": "https://elasticsearch-dc1.example.com:443"},
+    "dc2": {"url": "https://elasticsearch-dc2.example.com:443"}
+  }
+}

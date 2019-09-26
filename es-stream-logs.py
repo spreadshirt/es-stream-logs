@@ -9,7 +9,6 @@ query than Kibana, at least for ad-hoc queries.
 
 from datetime import datetime
 import json
-import math
 import os
 import sys
 import time
@@ -20,14 +19,13 @@ import elasticsearch
 from flask import Flask, Response, abort, escape, request
 
 # project internal modules
+import config
 import tinygraph
 
 APP = Flask(__name__)
 
 ES_USER = os.environ.get('ES_USER', None)
 ES_PASSWORD = os.environ.get('ES_PASSWORD', None)
-
-DATACENTERS = ['dc1', 'dc3', 'dc2']
 
 @APP.route('/favicon.ico')
 def favicon_route():
@@ -482,11 +480,11 @@ def es_client_from(req):
                             {'WWW-Authenticate': 'Basic realm="Login with  LDAP credentials"'})
             return None, resp
 
-    datacenter = req.args.get('dc') or 'dc1'
-    if datacenter not in DATACENTERS:
+    datacenter = req.args.get('dc') or CONFIG.default_endpoint
+    if datacenter not in CONFIG.endpoints:
         abort(400, f"unknown datacenter '{datacenter}'")
 
-    es_client = Elasticsearch([f"https://es-log-{datacenter}.example.com:443"],
+    es_client = Elasticsearch([CONFIG.endpoints[datacenter]['url']],
                               http_auth=(ES_USER or req.authorization.username,
                                          ES_PASSWORD or req.authorization.password))
 
@@ -523,15 +521,25 @@ def serve_logs():
     return Response(stream_logs(es_client, **args),
                     content_type=content_type+'; charset=utf-8')
 
+CONFIG = None
+
 def run_app():
     """ Run application. """
 
+    config_file = 'config.json'
     host = 'localhost'
     port = 3028
     if len(sys.argv) > 1:
-        host = sys.argv[1]
+        config_file = sys.argv[1]
     if len(sys.argv) > 2:
-        port = int(sys.argv[2])
+        host = sys.argv[2]
+    if len(sys.argv) > 3:
+        port = int(sys.argv[3])
+
+    print(f"Loading config from '{config_file}'")
+    global CONFIG
+    CONFIG = config.from_file(config_file)
+
     APP.run(host=host, port=port, threaded=True)
 
 if __name__ == "__main__":
