@@ -107,7 +107,7 @@ def filter_dict(source, fields):
         try:
             val = nested_get(source, key.split("."))
             res[key] = val
-        except (IndexError, KeyError):
+        except (IndexError, KeyError, ValueError):
             pass
     return res
 
