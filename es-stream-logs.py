@@ -94,7 +94,10 @@ def nested_get(dct, keys):
     """ Gets keys recursively from dict, e.g. nested_get({test: inner: 42}, ["test", "inner"])
         would return the nested `42`. """
     for key in keys:
-        dct = dct[key]
+        if isinstance(dct, list):
+            dct = dct[int(key)]
+        else:
+            dct = dct[key]
     return dct
 
 def filter_dict(source, fields):
@@ -104,7 +107,7 @@ def filter_dict(source, fields):
         try:
             val = nested_get(source, key.split("."))
             res[key] = val
-        except KeyError:
+        except (IndexError, KeyError):
             pass
     return res
 
