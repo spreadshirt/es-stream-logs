@@ -1,2 +1,3 @@
 deployment/target
+/__pycache__/
 /venv/
