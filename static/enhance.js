@@ -25,7 +25,7 @@ function collectFieldStats(field) {
     var total = 0;
     window.stats = {};
     for (var i = 0; i < values.length; i++) {
-        var value = values[i].textContent;
+        var value = values[i].firstChild.textContent;
         stats[value] = (stats[value] || 0) + 1;
     };
     var top10 = Object.entries(stats).sort(([val1, cnt1], [val2, cnt2]) => cnt2 - cnt1).slice(0, 10);
