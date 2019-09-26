@@ -229,8 +229,8 @@ def aggregation(es, index="application-*", interval="auto", **kwargs):
         try:
             from_time = parse_timestamp(from_timestamp)
             to_time = parse_timestamp(to_timestamp)
-            interval_s = max(1, (to_time - from_time) / 100)
-            interval = f"{int(interval_s)}s"
+            interval_s = max(1, tinygraph.time_increment(from_time, to_time, 100))
+            interval = tinygraph.pretty_duration(interval_s)
         except ValueError as ex:
             print("Could not guess interval: ", ex)
 
@@ -282,7 +282,7 @@ def aggregation(es, index="application-*", interval="auto", **kwargs):
         bucket_width = (100.0 / len(num_results_buckets))
         avg_count = int(total_count / len(num_results_buckets))
 
-    img += f"""<text x="10" y="14">max: {max_count}, avg: {avg_count}</text>"""
+    img += f"""<text x="10" y="14">count per {interval}: max: {max_count}, avg: {avg_count}</text>"""
 
     pos_x = 0
     for idx, bucket in enumerate(num_results_buckets):

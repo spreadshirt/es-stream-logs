@@ -28,3 +28,42 @@ def tick_increment(start, stop, count):
     if power >= 0:
         return multiply * math.pow(10, power)
     return -math.pow(10, -power) * multiply
+
+MINUTE = 60
+HOUR = 60 * MINUTE
+DAY = 24 * HOUR
+
+TIME_INTERVALS = [
+        1, 5, 15, 30, # seconds
+        1*MINUTE, 5*MINUTE, 15*MINUTE, 30*MINUTE, # minutes
+        1*HOUR, 3*HOUR, 6*HOUR, 12*HOUR, # hours
+        1*DAY, 2*DAY, 7*DAY, # days
+]
+
+def time_increment(start_s: int, stop_s: int, count: int):
+    """ Finds a nice time increment for count steps between start (in
+        seconds) and end (in seconds).
+
+        Inspired by the time scale from d3:
+        https://github.com/d3/d3-scale/blob/151f2a0517c97adc28317913bd70f94a4176a0d0/src/time.js
+    """
+
+    initial_interval = (stop_s - start_s) / count
+    for interval in TIME_INTERVALS:
+        if initial_interval < interval:
+            return interval
+
+    return ValueError("could not find appropriate interval")
+
+def pretty_duration(duration_s: int):
+    """ Returns a pretty duration for the one given in seconds, e.g. 1h, 3m, 4d, ..."""
+    fmt = ""
+    if duration_s < MINUTE:
+        fmt = f"{duration_s}s"
+    elif duration_s < HOUR:
+        fmt = f"{duration_s // MINUTE}m"
+    elif duration_s < 24 * HOUR:
+        fmt = f"{duration_s // HOUR}h"
+    else:
+        fmt = f"{duration_s // (24*HOUR)}d"
+    return fmt
