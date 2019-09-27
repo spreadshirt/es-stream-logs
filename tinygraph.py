@@ -2,6 +2,27 @@
 
 import math
 
+class Scale:
+    """ A Scale maps values from an input domain to an output range.
+
+    For example, numbers between 0 and 100 would be mapped to pixels
+    from 0 to 300.
+    """
+
+    def __init__(self, num_steps: int, domain, range_):
+        (domain_min, domain_max) = domain
+        (range_min, range_max) = range_
+
+        self.num_steps = num_steps
+        self.factor = (range_max - range_min) / (domain_max - domain_min)
+        self.domain_min = domain_min
+
+    def map(self, value_in_domain):
+        """ Maps value_in_domain to the corresponding value in the
+        output range. """
+        return (value_in_domain - self.domain_min) * self.factor
+
+
 E10 = math.sqrt(50)
 E5 = math.sqrt(10)
 E2 = math.sqrt(2)

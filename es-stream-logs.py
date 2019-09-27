@@ -228,10 +228,10 @@ def aggregation(es, index="application-*", interval="auto", **kwargs):
     kwargs.pop("to", None)
 
     if interval == "auto":
-        interval = "1h"
         try:
             from_time = parse_timestamp(from_timestamp)
             to_time = parse_timestamp(to_timestamp)
+            scale = tinygraph.Scale(100, (from_time * 1000, to_time * 1000), (0, 100))
             interval_s = max(1, tinygraph.time_increment(from_time, to_time, 100))
             interval = tinygraph.pretty_duration(interval_s)
         except ValueError as ex:
@@ -283,21 +283,21 @@ def aggregation(es, index="application-*", interval="auto", **kwargs):
     avg_count = 0
 
     if num_results_buckets:
-        bucket_width = (100.0 / len(num_results_buckets))
         avg_count = int(total_count / len(num_results_buckets))
 
     img += f"""<text x="10" y="14">count per {interval}: max: {max_count}, avg: {avg_count}</text>"""
 
-    pos_x = 0
-    for idx, bucket in enumerate(num_results_buckets):
+    bucket_width = scale.factor * interval_s * 1000
+
+    for bucket in num_results_buckets:
         count = bucket['doc_count']
         key = bucket['key_as_string']
         height = int((count / max_count) * 100)
-        pos_x = bucket_width * idx
+        pos_x = scale.map(bucket['key'])
         bucket_logs_url = logs_url + f"&from={bucket['key']}&to={bucket['key']+interval_s*1000}"
         img += f"""<g>
     <a target="_parent" xlink:href="{escape(bucket_logs_url)}">
-        <rect width="{bucket_width}%" height="{height}%" y="{100-height}%" x="{pos_x}%"></rect>
+    <rect width="{bucket_width}%" height="{height}%" y="{100-height}%" x="{pos_x}%"></rect>
     </a>
     <text y="75%" x="{pos_x}%">{key}
 (count: {count})</text>
