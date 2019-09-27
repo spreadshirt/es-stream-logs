@@ -212,6 +212,11 @@ def parse_timestamp(timestamp):
 def aggregation(es, index="application-*", interval="auto", **kwargs):
     """ Do aggregation query. """
 
+    kwargs_query = map(lambda item: item[0] + "=" + item[1],
+                       [('dc', kwargs.get('dc', CONFIG.default_endpoint)),
+                        ('index', index)] + list(kwargs.items()))
+    logs_url = '/logs?' + "&".join(kwargs_query)
+
     # remove unused params
     kwargs.pop('dc', None)
     kwargs.pop('fields', None)
@@ -230,7 +235,7 @@ def aggregation(es, index="application-*", interval="auto", **kwargs):
             interval_s = max(1, tinygraph.time_increment(from_time, to_time, 100))
             interval = tinygraph.pretty_duration(interval_s)
         except ValueError as ex:
-            print("Could not guess interval: ", ex)
+            raise ValueError("Could not guess interval: ", ex)
 
     query_str = ", ".join([f"{item[0]}={item[1]}" for item in kwargs.items()])
 
@@ -246,7 +251,8 @@ def aggregation(es, index="application-*", interval="auto", **kwargs):
         max_count = max(max_count, bucket['doc_count'])
 
     img = """<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" class="chart" width="100%" height="125">
+<svg xmlns="http://www.w3.org/2000/svg" class="chart" width="100%" height="125"
+     xmlns:xlink="http://www.w3.org/1999/xlink">
     <title id="title">Aggregation for query: """ + query_str + """</title>
     <style>
     svg {
@@ -288,8 +294,11 @@ def aggregation(es, index="application-*", interval="auto", **kwargs):
         key = bucket['key_as_string']
         height = int((count / max_count) * 100)
         pos_x = bucket_width * idx
+        bucket_logs_url = logs_url + f"&from={bucket['key']}&to={bucket['key']+interval_s*1000}"
         img += f"""<g>
-    <rect width="{bucket_width}%" height="{height}%" y="{100-height}%" x="{pos_x}%"></rect>
+    <a target="_parent" xlink:href="{escape(bucket_logs_url)}">
+        <rect width="{bucket_width}%" height="{height}%" y="{100-height}%" x="{pos_x}%"></rect>
+    </a>
     <text y="75%" x="{pos_x}%">{key}
 (count: {count})</text>
 </g>
