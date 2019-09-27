@@ -35,7 +35,7 @@ function collectFieldStats(field) {
         if (val.length > 79) {
             val = val.slice(0, 79) + "...";
         }
-        return `${"=".repeat(percent)}>
+        return `${"=".repeat(percent * 0.7)}>
 ${val} = ${cnt} (${percent}%)`
     }).join("\n");
     alert(`Top 10 values of '${field.textContent}' in ${values.length} records:\n\n` + top10);
