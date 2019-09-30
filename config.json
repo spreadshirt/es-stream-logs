@@ -4,5 +4,25 @@
     "dc3": {"url": "https://elasticsearch-dc3.example.com:443"},
     "dc1": {"url": "https://elasticsearch-dc1.example.com:443"},
     "dc2": {"url": "https://elasticsearch-dc2.example.com:443"}
-  }
+  },
+  "default_fields": [
+    {
+      "match_params": {
+        "index": "application-*"
+      },
+      "fields": ["@timestamp", "hostname", "level", "message", "thread_name", "stack_trace", "tracing.trace_id"]
+    },
+    {
+      "match_params": {
+        "index": "cdn-*"
+      },
+      "fields": ["@timestamp", "request.method", "request.host.subdomain", "request.path", "status.code", "user_agent.value", "tracing.trace_id"]
+    },
+    {
+      "match_params": {
+        "index": ""
+      },
+      "fields": ["@timestamp", "type", "message", "tracing.trace_id"]
+    }
+  ]
 }

@@ -334,15 +334,19 @@ def link_trace_logs(dc, index, from_timestamp, to_timestamp, trace_id):
     params.append(('tracing.trace_id', trace_id))
     return '/logs?' + '&'.join(map(lambda item: item[0] + "=" + item[1], params))
 
-def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", separator=" ", **kwargs):
+def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, separator=" ", **kwargs):
     """ Contruct query and stream logs given the elasticsearch client and parameters. """
+
+    if fields:
+        fields = fields.split(',')
+    else:
+        default_fields = CONFIG.find_default_fields(index=index, **kwargs)
+        if default_fields:
+            fields = default_fields
 
     kwargs_query = map(lambda item: item[0] + "=" + item[1],
                        [('dc', dc), ('index', index)] + list(kwargs.items()))
     aggregation_url = '/aggregation.svg?' + "&".join(kwargs_query)
-
-    if fields != "all":
-        fields = fields.split(',')
 
     from_timestamp = kwargs.get("from", "now-5m")
     to_timestamp = kwargs.get("to", "now")
@@ -378,10 +382,6 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields="all", s
 <thead>
 <tr>
 """
-
-        if fields == "all":
-            fields = ["@timestamp", "hostname", "level", "message", "thread_name", "stack_trace",
-                      "tracing.trace_id"]
 
         yield "<td></td>" # for expand placeholder
         for field in fields:
@@ -493,7 +493,7 @@ def es_client_from(req):
     if datacenter not in CONFIG.endpoints:
         abort(400, f"unknown datacenter '{datacenter}'")
 
-    es_client = Elasticsearch([CONFIG.endpoints[datacenter]['url']],
+    es_client = Elasticsearch([CONFIG.endpoints[datacenter].url],
                               http_auth=(ES_USER or req.authorization.username,
                                          ES_PASSWORD or req.authorization.password))
 
