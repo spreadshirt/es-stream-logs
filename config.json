@@ -20,6 +20,13 @@
     },
     {
       "match_params": {
+        "index": "syslog-*"
+      },
+      "fields": ["@timestamp", "logsource", "facility_label", "severity_label", "program", "message"]
+    },
+
+    {
+      "match_params": {
         "index": ""
       },
       "fields": ["@timestamp", "type", "message", "tracing.trace_id"]
