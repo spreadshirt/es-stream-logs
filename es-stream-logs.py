@@ -334,6 +334,14 @@ def link_trace_logs(dc, index, from_timestamp, to_timestamp, trace_id):
     params.append(('tracing.trace_id', trace_id))
     return '/logs?' + '&'.join(map(lambda item: item[0] + "=" + item[1], params))
 
+def parse_doc_timestamp(timestamp: str):
+    """ Parse the timestamp of an elasticsearch document. """
+    try:
+        parsed = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+    except ValueError:
+        parsed = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
+    return parsed
+
 def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, separator=" ", **kwargs):
     """ Contruct query and stream logs given the elasticsearch client and parameters. """
 
@@ -425,7 +433,7 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
             if fields != "all":
                 source = filter_dict(source, fields)
 
-            timestamp = int(datetime.strptime(hit['_source']['@timestamp'], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()*1000)
+            timestamp = int(parse_doc_timestamp(hit['_source']['@timestamp']).timestamp()*1000)
             if isinstance(last_timestamp, str):
                 last_timestamp = timestamp
             else:
