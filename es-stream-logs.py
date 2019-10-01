@@ -393,7 +393,7 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
 
         yield "<td></td>" # for expand placeholder
         for field in fields:
-            yield f"<td class=\"field\" data-class=\"field-{field}\">{field}</td>"
+            yield f"<td class=\"field\" data-class=\"field-{escape(field)}\">{escape(field)}</td>"
 
         yield """
 </tr>
@@ -446,17 +446,17 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
                 yield "<td class=\"toggle-expand\">+</td>"
                 for field in fields:
                     val = escape(source.get(field, ''))
-                    classes = [f"field-{field}"]
+                    classes = [f"field-{escape(field)}"]
                     if field == "_source":
                         val = json.dumps(hit['_source'])
-                        val = f"<div class=\"source-flattened\">{val}</div>"
+                        val = f"<div class=\"source-flattened\">{escape(val)}</div>"
                     if field == "tracing.trace_id" and val:
                         classes += ["break-strings"]
-                        trace_id = val
+                        trace_id = escape(val)
                         val = f"<a href=\"https://tracing.example.com/?traceId={trace_id}&dc={dc}\">{trace_id}</a>"
                         trace_id_logs = link_trace_logs(dc, index, 'now-14d', to_timestamp, trace_id)
                         val += f" <a class=\"trace-logs\" title=\"Logs for trace_id {trace_id}\"href=\"{trace_id_logs}\">…</a>"
-                    yield f"    <td data-field=\"{field}\" class=\"{' '.join(classes)}\">"
+                    yield f"    <td data-field=\"{escape(field)}\" class=\"{' '.join(classes)}\">"
                     yield val
                     yield "<span class=\"filter filter-include\">🔎</span>"
                     yield "<span class=\"filter filter-exclude\">🗑</span>"
