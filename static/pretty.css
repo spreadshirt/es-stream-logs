@@ -51,6 +51,11 @@ td.break-strings {
     overflow-wrap: anywhere;
 }
 
+td .field-container {
+    max-height: 10em;
+    overflow: hidden;
+}
+
 td a.trace-logs {
     visibility: hidden;
 }

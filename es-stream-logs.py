@@ -475,9 +475,11 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
                         trace_id_logs = link_trace_logs(dc, index, 'now-14d', to_timestamp, trace_id)
                         val += f" <a class=\"trace-logs\" title=\"Logs for trace_id {trace_id}\"href=\"{trace_id_logs}\">…</a>"
                     yield f"    <td data-field=\"{escape(field)}\" class=\"{' '.join(classes)}\">"
+                    yield "<div class=\"field-container\">"
                     yield val
                     yield "<span class=\"filter filter-include\">🔎</span>"
                     yield "<span class=\"filter filter-exclude\">🗑</span>"
+                    yield "</div>"
                     yield "</td>\n"
                 yield "</tr>\n"
                 yield f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
