@@ -342,15 +342,33 @@ def parse_doc_timestamp(timestamp: str):
         parsed = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
     return parsed
 
+def remove_prefix(text, prefix):
+    """ Remove prefix from text if present. """
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text
+
+def collect_fields(cfg, fields, **kwargs):
+    """ Collects fields by the given ones, or one of the default ones
+        from the configuration. """
+    additional_fields = None
+    if isinstance(fields, str) and fields.startswith(","):
+        additional_fields = [remove_prefix(field, ",") for field in fields.split(',')]
+
+    if fields and not additional_fields:
+        fields = fields.split(',')
+    else:
+        default_fields = cfg.find_default_fields(**kwargs)
+        if default_fields:
+            fields = default_fields
+            if additional_fields:
+                fields += additional_fields
+    return fields
+
 def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, separator=" ", **kwargs):
     """ Contruct query and stream logs given the elasticsearch client and parameters. """
 
-    if fields:
-        fields = fields.split(',')
-    else:
-        default_fields = CONFIG.find_default_fields(index=index, **kwargs)
-        if default_fields:
-            fields = default_fields
+    fields = collect_fields(CONFIG, fields, index=index, **kwargs)
 
     kwargs_query = map(lambda item: item[0] + "=" + item[1],
                        [('dc', dc), ('index', index)] + list(kwargs.items()))

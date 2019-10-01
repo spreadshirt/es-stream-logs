@@ -48,7 +48,7 @@ class Config:
         for default_fields in self.default_fields:
             fields = default_fields.matches(kwargs)
             if fields:
-                return fields
+                return fields.copy()
         return None
 
 def from_file(filename):
