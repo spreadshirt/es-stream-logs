@@ -429,9 +429,20 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
             yield " " # keep connection open
             time.sleep(1)
             continue
-        except elasticsearch.AuthenticationException as ex:
-            yield str(ex)
+        except elasticsearch.ElasticsearchException as ex:
+            print(ex)
+            yield f"<tr><td class=\"error\" colspan=\"{1 + len(fields)}\">ERROR!: {escape(str(ex))}</td></tr>\n"
             return
+
+        if not resp['hits']['hits']:
+            yield f"<tr data-source=\"{escape(json.dumps(query))}\">\n"
+            yield "<td class=\"toggle-expand\">+</td> "
+            yield f"<td class=\"warning\" colspan=\"{len(fields)}\">Warning: No results matching query (Check details for query)</td>"
+            yield "</tr>\n"
+
+            yield f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
+            time.sleep(10)
+            continue
 
         all_hits_seen = True
         last_seen = {}
