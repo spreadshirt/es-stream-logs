@@ -3,6 +3,14 @@ window.setInterval(function() {
     numHitsEl.textContent = document.querySelectorAll("tbody tr.row").length;
 }, 1000);
 
+var histogramEl = document.getElementById("histogram");
+var histogramRefresh = window.setInterval(function() {
+    histogramEl.data = histogramEl.data;
+}, 5000);
+window.addEventListener("DOMContentLoaded", function() {
+    window.clearInterval(histogramRefresh);
+});
+
 document.body.addEventListener('click', function(ev) {
     if (ev.target.classList.contains("toggle-expand")) {
         expandSource(ev.target);
