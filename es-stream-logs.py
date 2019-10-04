@@ -426,8 +426,14 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
             resp = es.search(index=index, body=query)
         except elasticsearch.ConnectionTimeout as ex:
             print(ex)
-            yield " " # keep connection open
-            time.sleep(1)
+            yield f"<tr data-source=\"{escape(json.dumps(query))}\">\n"
+            yield "<td class=\"toggle-expand\">+</td> "
+            yield f"<td class=\"warning\" colspan=\"{len(fields)}\">Warning: Connection timeout: {ex} (Check details for query)</td>"
+            yield "</tr>\n"
+
+            yield f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
+
+            time.sleep(10)
             continue
         except elasticsearch.ElasticsearchException as ex:
             print(ex)
