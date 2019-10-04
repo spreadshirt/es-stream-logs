@@ -477,9 +477,9 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
                     yield f"    <td data-field=\"{escape(field)}\" class=\"{' '.join(classes)}\">"
                     yield "<div class=\"field-container\">"
                     yield val
+                    yield "</div>"
                     yield "<span class=\"filter filter-include\">🔎</span>"
                     yield "<span class=\"filter filter-exclude\">🗑</span>"
-                    yield "</div>"
                     yield "</td>\n"
                 yield "</tr>\n"
                 yield f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
