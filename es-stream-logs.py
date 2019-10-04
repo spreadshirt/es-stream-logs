@@ -564,15 +564,26 @@ def serve_logs():
     if resp:
         return resp
 
+    headers = {}
+
     fmt = request.args.get("fmt", "html")
-    content_type = "text/html"
-    if fmt == "json":
+    if fmt == "html":
+        content_type = "text/html"
+        csp = [
+            "default-src 'none'",
+            "img-src 'self'", # favicon
+            "script-src 'self'",
+            "style-src 'self'",
+            "object-src 'self'" # histogram
+            ]
+        headers['Content-Security-Policy'] = ";".join(csp)
+    elif fmt == "json":
         content_type = "application/json"
     elif fmt == "text":
         content_type = "text/plain"
 
     args = consolidate_args(request.args, exceptions=ONLY_ONCE_ARGUMENTS)
-    return Response(stream_logs(es_client, **args),
+    return Response(stream_logs(es_client, **args), headers=headers,
                     content_type=content_type+'; charset=utf-8')
 
 CONFIG = None
