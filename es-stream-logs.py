@@ -576,7 +576,7 @@ def serve_logs():
             "style-src 'self'",
             "object-src 'self'" # histogram
             ]
-        headers['Content-Security-Policy'] = ";".join(csp)
+        headers['Content-Security-Policy'] = "; ".join(csp)
     elif fmt == "json":
         content_type = "application/json"
     elif fmt == "text":
