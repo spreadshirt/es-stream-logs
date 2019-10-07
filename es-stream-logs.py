@@ -177,24 +177,31 @@ def create_query(from_timestamp, to_timestamp, aggregate=False, num_results=500,
         }
     return query
 
+def parse_offset(offset):
+    """ Parse elastic-search style offset into seconds, e.g. 10s, 1m, 3h, 2d... """
+    suffix = offset[-1]
+    num = int(offset[:-1])
+    offset_in_s = 0
+    if suffix == "s":
+        offset_in_s = num
+    elif suffix == "m":
+        offset_in_s = num * 60
+    elif suffix == "h":
+        offset_in_s = num * 60 * 60
+    elif suffix == "d":
+        offset_in_s = num * 24 * 60 * 60
+    else:
+        raise ValueError(f"could not parse offset '{offset}'")
+    return offset_in_s
+
 def parse_timestamp(timestamp):
     """ Parse elasticsearch-style timestamp, e.g. now-3h, 2019-09-09T00:00:00Z or epoch_millis. """
     now = time.time()
     if timestamp == "now":
         return now
     if timestamp.startswith("now-"):
-        suffix = timestamp[len(timestamp)-1]
-        num = int(timestamp[len("now-"):len(timestamp)-1])
-        if suffix == "s":
-            return now - num
-        if suffix == "m":
-            return now - num * 60
-        if suffix == "h":
-            return now - num * 60 * 60
-        if suffix == "d":
-            return now - num * 24 * 60 * 60
-
-        raise ValueError(f"could not parse timestamp '{timestamp}'")
+        offset = parse_offset(timestamp[len("now-"):])
+        return now - offset
 
     # epoch millis
     try:
@@ -227,15 +234,17 @@ def aggregation(es, index="application-*", interval="auto", **kwargs):
     kwargs.pop("from", None)
     kwargs.pop("to", None)
 
+    from_time = parse_timestamp(from_timestamp)
+    to_time = parse_timestamp(to_timestamp)
+    scale = tinygraph.Scale(100, (from_time * 1000, to_time * 1000), (0, 100))
     if interval == "auto":
         try:
-            from_time = parse_timestamp(from_timestamp)
-            to_time = parse_timestamp(to_timestamp)
-            scale = tinygraph.Scale(100, (from_time * 1000, to_time * 1000), (0, 100))
             interval_s = max(1, tinygraph.time_increment(from_time, to_time, 100))
             interval = tinygraph.pretty_duration(interval_s)
         except ValueError as ex:
             raise ValueError("Could not guess interval: ", ex)
+    else:
+        interval_s = parse_offset(interval)
 
     query_str = ", ".join([f"{item[0]}={item[1]}" for item in kwargs.items()])
 
