@@ -429,8 +429,10 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
 <tbody>
 """
 
+    query_count = 0
     while True:
         try:
+            query_count += 1
             query = create_query(last_timestamp, to_timestamp, **kwargs)
             resp = es.search(index=index, body=query)
         except elasticsearch.ConnectionTimeout as ex:
@@ -449,7 +451,7 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
             yield f"<tr><td class=\"error\" colspan=\"{1 + len(fields)}\">ERROR!: {escape(str(ex))}</td></tr>\n"
             return
 
-        if not resp['hits']['hits']:
+        if query_count <= 1 and not resp['hits']['hits']:
             yield f"<tr data-source=\"{escape(json.dumps(query))}\">\n"
             yield "<td class=\"toggle-expand\">+</td> "
             yield f"<td class=\"warning\" colspan=\"{len(fields)}\">Warning: No results matching query (Check details for query)</td>"
