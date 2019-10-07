@@ -3,12 +3,32 @@ window.setInterval(function() {
     numHitsEl.textContent = document.querySelectorAll("tbody tr.row").length;
 }, 1000);
 
+var histogramContainer = document.getElementById("histogram_container");
 var histogramEl = document.getElementById("histogram");
-var histogramRefresh = window.setInterval(function() {
-    histogramEl.data = histogramEl.data;
-}, 5000);
+var histogramRefresh = true;
+function refreshHistogram() {
+    if (!histogramRefresh) {
+        return;
+    }
+
+    var newHistogramEl = document.createElement("object");
+    newHistogramEl.type = histogramEl.type;
+    newHistogramEl.data = histogramEl.data;
+    newHistogramEl.style.display = "none";
+
+    newHistogramEl.addEventListener("load", function() {
+        histogramContainer.removeChild(histogramEl);
+        newHistogramEl.id = "histogram";
+        newHistogramEl.style.display = "";
+        histogramEl = newHistogramEl;
+
+        window.setTimeout(refreshHistogram, 5000);
+    });
+    histogramContainer.appendChild(newHistogramEl);
+};
+window.setTimeout(refreshHistogram, 5000);
 window.addEventListener("DOMContentLoaded", function() {
-    window.clearInterval(histogramRefresh);
+    histogramRefresh = false;
 });
 
 document.body.addEventListener('click', function(ev) {
