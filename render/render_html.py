@@ -1,4 +1,4 @@
-""" This module handles rendering of query results. """
+""" Handles HTML rendering """
 
 import json
 
