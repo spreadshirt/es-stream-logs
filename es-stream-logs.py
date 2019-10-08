@@ -19,6 +19,7 @@ from flask import Flask, Response, abort, escape, request
 
 # project internal modules
 import config
+from query import Query, from_request_args
 import render
 import tinygraph
 
@@ -113,70 +114,6 @@ def filter_dict(source, fields):
             pass
     return res
 
-def create_query(from_timestamp, to_timestamp, aggregate=False, num_results=500, interval="1h", **kwargs):
-    """ Create elasticsearch query from (query) parameters. """
-
-    required_filters = []
-    excluded_filters = []
-    query = kwargs.get("q", None)
-    if query:
-        required_filters.append({"query_string": {"query": query, "analyze_wildcard": True}})
-        kwargs.pop("q", None)
-
-    compare_ops = {"<": "lt", ">": "gt"}
-    for key, val in kwargs.items():
-        exclude = False
-        if key.startswith("-"):
-            exclude = True
-            key = key[1:]
-
-        filters = []
-        if val == "":
-            filters.append({"exists": {"field": key}})
-        elif val[:1] in compare_ops:
-            compare_op = compare_ops[val[:1]]
-            try:
-                filters.append({"range": {key: {compare_op: int(val[1:])}}})
-            except ValueError:
-                msg = f"value for range query on '{key}' must be a number, but was '{val[1:]}'"
-                raise ValueError(msg)
-        else:
-            if "," in val:
-                filters.append({"bool" : {
-                    "should": [{"match": {key: v}} for v in val.split(',')]
-                    }})
-            else:
-                filters.append({"match": {key: val}})
-
-        if exclude:
-            excluded_filters.extend(filters)
-        else:
-            required_filters.extend(filters)
-
-    timerange = {"range": {"@timestamp": {"gte": from_timestamp, "lt": to_timestamp}}}
-    query = {
-        "size": num_results,
-        "sort": [{"@timestamp":{"order": "asc"}}],
-        "query": {
-            "bool": {
-                "must": [*required_filters, timerange],
-                "must_not": excluded_filters
-                }
-            }
-        }
-    if aggregate:
-        query["aggs"] = {
-            "num_results": {
-                "date_histogram": {
-                    "field": "@timestamp",
-                    "interval": interval,
-                    "time_zone": "UTC",
-                    "min_doc_count": 0
-                }
-            }
-        }
-    return query
-
 def parse_offset(offset):
     """ Parse elastic-search style offset into seconds, e.g. 10s, 1m, 3h, 2d... """
     suffix = offset[-1]
@@ -216,27 +153,15 @@ def parse_timestamp(timestamp):
 
     raise ValueError(f"could not parse timestamp '{timestamp}'")
 
-def aggregation(es, index="application-*", interval="auto", **kwargs):
+def aggregation(es, query: Query):
     """ Do aggregation query. """
 
-    kwargs_query = map(lambda item: item[0] + "=" + item[1],
-                       [('dc', kwargs.get('dc', CONFIG.default_endpoint)),
-                        ('index', index)] + list(kwargs.items()))
-    logs_url = '/logs?' + "&".join(kwargs_query)
+    logs_url = query.as_url('/logs')
 
-    # remove unused params
-    kwargs.pop('dc', None)
-    kwargs.pop('fields', None)
-
-    from_timestamp = kwargs.get("from", "now-5m")
-    to_timestamp = kwargs.get("to", "now")
-    # remove from and to because they are not fields, None to prevent KeyError
-    kwargs.pop("from", None)
-    kwargs.pop("to", None)
-
-    from_time = parse_timestamp(from_timestamp)
-    to_time = parse_timestamp(to_timestamp)
+    from_time = parse_timestamp(query.from_timestamp)
+    to_time = parse_timestamp(query.to_timestamp)
     scale = tinygraph.Scale(100, (from_time * 1000, to_time * 1000), (0, 100))
+    interval = query.interval
     if interval == "auto":
         try:
             interval_s = max(1, tinygraph.time_increment(from_time, to_time, 100))
@@ -246,11 +171,9 @@ def aggregation(es, index="application-*", interval="auto", **kwargs):
     else:
         interval_s = parse_offset(interval)
 
-    query_str = ", ".join([f"{item[0]}={item[1]}" for item in kwargs.items()])
-
-    query = create_query(from_timestamp, to_timestamp, interval=interval,
-                         num_results=0, aggregate=True, **kwargs)
-    resp = es.search(index=index, body=query)
+    es_query = query.to_elasticsearch(query.from_timestamp)
+    es_query["aggs"] = query.aggregation("num_results", interval)
+    resp = es.search(index=query.index, body=es_query)
 
     total_count = 0
     max_count = 0
@@ -259,6 +182,7 @@ def aggregation(es, index="application-*", interval="auto", **kwargs):
         total_count += bucket['doc_count']
         max_count = max(max_count, bucket['doc_count'])
 
+    query_str = ", ".join([f"{item[0]}={item[1]}" for item in query.args.items()])
     img = """<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" class="chart" width="100%" height="125"
      xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -326,8 +250,8 @@ def serve_aggregation():
     if resp:
         return resp
 
-    args = consolidate_args(request.args, exceptions=ONLY_ONCE_ARGUMENTS)
-    return aggregation(es_client, **args)
+    query = from_request_args(CONFIG, request.args)
+    return aggregation(es_client, query)
 
 def parse_doc_timestamp(timestamp: str):
     """ Parse the timestamp of an elasticsearch document. """
@@ -360,41 +284,33 @@ def collect_fields(cfg, fields, **kwargs):
                 fields += additional_fields
     return fields
 
-def stream_logs(es, renderer, dc='dc1', index="application-*", fields=None, **kwargs):
+def stream_logs(es, renderer, query: Query):
     """ Contruct query and stream logs given the elasticsearch client and parameters. """
 
-    fields = collect_fields(CONFIG, fields, index=index, **kwargs)
-
-    from_timestamp = kwargs.get("from", "now-5m")
-    to_timestamp = kwargs.get("to", "now")
-    # remove from and to because they are not fields, None to prevent KeyError
-    kwargs.pop("from", None)
-    kwargs.pop("to", None)
-
-    last_timestamp = from_timestamp
+    last_timestamp = query.from_timestamp
     seen = {}
 
-    yield renderer.start(dc, index, fields, kwargs)
+    yield renderer.start()
 
     query_count = 0
     while True:
         try:
             query_count += 1
-            query = create_query(last_timestamp, to_timestamp, **kwargs)
-            resp = es.search(index=index, body=query)
+            es_query = query.to_elasticsearch(last_timestamp)
+            resp = es.search(index=query.index, body=es_query)
         except elasticsearch.ConnectionTimeout as ex:
             print(ex)
-            yield renderer.error(query, fields, ex)
+            yield renderer.error(ex, es_query)
             time.sleep(10)
             continue
         except elasticsearch.ElasticsearchException as ex:
             print(ex)
-            yield renderer.error(query, fields, ex)
+            yield renderer.error(ex, es_query)
             return
 
         if query_count <= 1 and not resp['hits']['hits']:
             if renderer:
-                yield renderer.no_results(query, fields)
+                yield renderer.no_results(es_query)
             time.sleep(10)
             continue
 
@@ -413,8 +329,8 @@ def stream_logs(es, renderer, dc='dc1', index="application-*", fields=None, **kw
 
             yield "\n"
 
-            if fields != "all":
-                source = filter_dict(source, fields)
+            if query.fields:
+                source = filter_dict(source, query.fields)
 
             timestamp = int(parse_doc_timestamp(hit['_source']['@timestamp']).timestamp()*1000)
             if isinstance(last_timestamp, str):
@@ -422,10 +338,10 @@ def stream_logs(es, renderer, dc='dc1', index="application-*", fields=None, **kw
             else:
                 last_timestamp = max(timestamp, last_timestamp)
 
-            yield renderer.result(dc, index, fields, hit, source, to_timestamp)
+            yield renderer.result(hit, source)
         seen = last_seen
 
-        if to_timestamp != 'now' and all_hits_seen:
+        if query.to_timestamp != 'now' and all_hits_seen:
             yield renderer.end()
             return
 
@@ -455,22 +371,6 @@ def es_client_from(req):
 
     return es_client, None
 
-def consolidate_args(args, exceptions=None):
-    """ Consolidates arguments from a werkzeug.datastructures.MultiDict
-        into our internal comma-separated format. """
-    res = {}
-    for key, values in args.to_dict(flat=False).items():
-        if key in ["fmt"]:
-            continue
-
-        if exceptions and key in exceptions:
-            res[key] = values[-1]
-        else:
-            res[key] = ','.join(values)
-    return res
-
-ONLY_ONCE_ARGUMENTS = ["from", "to", "dc", "index", "interval"]
-
 @APP.route('/logs')
 def serve_logs():
     """ Serve logs. """
@@ -480,9 +380,11 @@ def serve_logs():
 
     headers = {}
 
+    query = from_request_args(CONFIG, request.args)
+
     fmt = request.args.get("fmt", "html")
     if fmt == "html":
-        renderer = render.HTMLRenderer()
+        renderer = render.HTMLRenderer(query)
         content_type = "text/html"
         csp = [
             "default-src 'none'",
@@ -498,8 +400,7 @@ def serve_logs():
     else:
         raise Exception(f"unknown output format '{fmt}'")
 
-    args = consolidate_args(request.args, exceptions=ONLY_ONCE_ARGUMENTS)
-    return Response(stream_logs(es_client, renderer, **args), headers=headers,
+    return Response(stream_logs(es_client, renderer, query), headers=headers,
                     content_type=content_type+'; charset=utf-8')
 
 CONFIG = None

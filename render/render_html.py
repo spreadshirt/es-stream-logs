@@ -5,13 +5,18 @@ import json
 import elasticsearch
 from flask import escape
 
+from query import Query
+
 class HTMLRenderer:
     """ Renders query result as HTML. """
 
-    def start(self, datacenter, index, fields, query_args):
+    def __init__(self, query: Query):
+        self.query = query
+
+    def start(self):
         """ Render content at the "start", e.g. html head, table head, ... """
 
-        aggregation_url = query_as_url('/aggregation.svg', datacenter, index, query_args)
+        aggregation_url = self.query.as_url('/aggregation.svg')
         start = """<!doctype html>
 <html>
 <head>
@@ -34,7 +39,7 @@ class HTMLRenderer:
 <tr>
 """
         start += "  <td></td>\n" # for expand placeholder
-        for field in fields:
+        for field in self.query.fields:
             field = escape(field)
             start += f"  <td class=\"field\" data-class=\"field-{field}\">{field}</td>\n"
 
@@ -46,12 +51,12 @@ class HTMLRenderer:
 """
         return start
 
-    def result(self, dc, index, fields, hit, source, to_timestamp):
+    def result(self, hit, source):
         """ Renders a single result. """
 
         result = f"<tr class=\"row\" data-source=\"{escape(json.dumps(hit['_source']))}\">\n"
         result += "<td class=\"toggle-expand\">+</td>"
-        for field in fields:
+        for field in self.query.fields:
             val = escape(source.get(field, ''))
             classes = [f"field-{escape(field)}"]
             if field == "_source":
@@ -60,8 +65,8 @@ class HTMLRenderer:
             if field == "tracing.trace_id" and val:
                 classes += ["break-strings"]
                 trace_id = escape(val)
-                val = f"<a href=\"https://tracing.example.com/?traceId={trace_id}&dc={dc}\">{trace_id}</a>"
-                trace_id_logs = link_trace_logs(dc, index, 'now-14d', to_timestamp, trace_id)
+                val = f"<a href=\"https://tracing.example.com/?traceId={trace_id}&dc={self.query.datacenter}\">{trace_id}</a>"
+                trace_id_logs = link_trace_logs(self.query, trace_id)
                 val += f" <a class=\"trace-logs\" title=\"Logs for trace_id {trace_id}\"href=\"{trace_id_logs}\">…</a>"
 
             result += f"    <td data-field=\"{escape(field)}\" class=\"{' '.join(classes)}\">"
@@ -72,7 +77,7 @@ class HTMLRenderer:
             result += "<span class=\"filter filter-exclude\">🗑</span>"
             result += "</td>\n"
         result += "</tr>\n"
-        result += f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
+        result += f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(self.query.fields)}\"></td></tr>\n"
         return result
 
     def end(self):
@@ -82,24 +87,25 @@ class HTMLRenderer:
 </body>
 </html>"""
 
-    def no_results(self, query, fields):
+    def no_results(self, es_query):
         """ Render no results. """
 
         msg = "Warning: No results matching query (Check details for query)"
-        return self.__notice("warning", len(fields), json.dumps(query), msg)
+        return self.__notice("warning", es_query, msg)
 
-    def error(self, query, fields, ex):
+    def error(self, ex, es_query):
         """ Render error. """
 
         if isinstance(ex, elasticsearch.ConnectionTimeout):
             msg = f"Warning: Connection timeout: {ex} (Check details for query)"
-            return self.__notice("warning", len(fields), json.dumps(query), msg)
+            return self.__notice("warning", es_query, msg)
 
         msg = "ERROR!: " + str(ex)
-        return self.__notice("error", len(fields), json.dumps(query), msg)
+        return self.__notice("error", es_query, msg)
 
-    def __notice(self, class_, width, content, msg):
-        row = f"<tr data-source=\"{escape(content)}\">\n"
+    def __notice(self, class_, es_query, msg):
+        width = len(self.query.fields)
+        row = f"<tr data-source=\"{escape(json.dumps(es_query))}\">\n"
         row += "<td class=\"toggle-expand\">+</td> "
         row += f"<td class=\"{class_}\" colspan=\"{width}\">{escape(msg)}</td>"
         row += "</tr>\n"
@@ -107,22 +113,15 @@ class HTMLRenderer:
         row += f"<tr class=\"source source-hidden\"><td colspan=\"{1 + width}\"></td></tr>\n"
         return row
 
-def query_as_url(url, datacenter, index, query_args):
-    """ Render query as url. """
-    kwargs_query = map(lambda item: item[0] + "=" + item[1],
-                       [('dc', datacenter), ('index', index)] + list(query_args.items()))
-    return url + '?' + "&".join(kwargs_query)
-
-def link_trace_logs(dc, index, from_timestamp, to_timestamp, trace_id):
+def link_trace_logs(query: Query, trace_id: str):
     """ Create link for logs about trace_id. """
     params = []
-    if dc != 'dc1':
-        params.append(('dc', dc))
-    if index != 'application-*':
-        params.append(('index', index))
-    if from_timestamp != 'now-5m':
-        params.append(('from', from_timestamp))
-    if to_timestamp != 'now':
-        params.append(('to', to_timestamp))
+    if query.datacenter != 'dc1':
+        params.append(('dc', query.datacenter))
+    if query.index != 'application-*':
+        params.append(('index', query.index))
+    params.append(('from', 'now-14d'))
+    if query.to_timestamp != 'now':
+        params.append(('to', query.to_timestamp))
     params.append(('tracing.trace_id', trace_id))
     return '/logs?' + '&'.join(map(lambda item: item[0] + "=" + item[1], params))
