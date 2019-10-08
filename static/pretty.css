@@ -13,7 +13,7 @@
     box-sizing: border-box;
 }
 
-table {
+table.results {
     width: 100%;
 }
 
@@ -39,23 +39,26 @@ td {
     border-bottom: 1px solid #ddd;
     font-size: 14px;
     font-family: monospace;
-    max-width: 30em;
     word-wrap: break-word;
     overflow-y: auto;
     vertical-align: top;
+}
+
+.row td {
+    max-width: 30em;
 }
 
 td:first-of-type, td:last-of-type {
     padding-right: 0;
 }
 
-td .filter {
+.row td .filter, .source tr .filter2 {
     visibility: hidden;
     margin-left: 1ex;
     cursor: pointer;
 }
 
-td:hover .filter {
+.row td:hover .filter, .source tr:hover .filter2 {
     visibility: visible;
 }
 
@@ -83,8 +86,13 @@ td:hover a.trace-logs {
     display: none;
 }
 
+.source td {
+    vertical-align: top;
+}
+
 .source pre {
     white-space: pre-wrap;
+    margin: 0;
 }
 
 .source-flattened {

@@ -34,7 +34,7 @@ class HTMLRenderer:
 
 <script src="/static/enhance.js" defer async></script>
 
-<table>
+<table class="results">
 <thead>
 <tr>
 """

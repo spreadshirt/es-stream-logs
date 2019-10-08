@@ -43,7 +43,9 @@ document.body.addEventListener('click', function(ev) {
     }
 
     if (ev.target.classList.contains("filter")) {
-        addFilter(ev.target);
+        let key = ev.target.parentElement.dataset['field'];
+        let value = ev.target.parentElement.firstChild.textContent;
+        addFilter(key, value, ev.target.classList.contains("filter-exclude"));
         return;
     }
 });
@@ -74,10 +76,25 @@ function expandSource(element) {
     var sourceContainer = element.parentElement.nextElementSibling.firstElementChild;
     if (!isExpanded) {
         element.classList.add("expanded");
-        var source = JSON.stringify(JSON.parse(element.parentElement.dataset['source']), "", "  ");
-        var formattedSourceEl = document.createElement("pre");
-        formattedSourceEl.textContent = source;
-        sourceContainer.appendChild(formattedSourceEl);
+        var source = JSON.parse(element.parentElement.dataset['source']);
+        var container = makeElement("div", {"class": "source-details"});
+        var toggleTable = makeElement("a", {"href": "#"}, "Table");
+        toggleTable.addEventListener("click", function(ev) {
+            container.removeChild(container.lastElementChild);
+            container.appendChild(renderSourceTable(source));
+            ev.preventDefault();
+        });
+        var toggleJSON = makeElement("a", {"href": "#"}, "JSON");
+        toggleJSON.addEventListener("click", function(ev) {
+            container.removeChild(container.lastElementChild);
+            container.appendChild(renderSourceJSON(source));
+            ev.preventDefault();
+        });
+        container.appendChild(toggleTable);
+        container.appendChild(new Text(" "));
+        container.appendChild(toggleJSON);
+        container.appendChild(renderSourceTable(source));
+        sourceContainer.appendChild(container);
         sourceContainer.parentElement.classList.remove("source-hidden");
         element.textContent = "-";
     } else {
@@ -88,12 +105,74 @@ function expandSource(element) {
     }
 }
 
-function addFilter(element) {
-    var key = element.parentElement.dataset['field'];
-    if (element.classList.contains("filter-exclude")) {
+function renderSourceJSON(source) {
+    return makeElement("pre", {}, JSON.stringify(source, "", "  "));
+}
+
+function renderSourceTable(source) {
+    let table = makeElement("table");
+    let tbody = makeElement("tbody");
+    Object.entries(flattenObject({}, "", source))
+        .sort(([key1, _1], [key2, _2]) => {
+            if (key1 < key2) {
+                return -1;
+            } else if (key1 > key2) {
+                return 1;
+            } else {
+                return 0;
+            }
+        })
+        .forEach(([key, value]) => {
+            let row = makeElement("tr");
+
+            let buttons = makeElement("td");
+            buttons.appendChild(makeElement("span", {
+                "classList": "filter2 filter-include",
+                "onclick": function() { addFilter(key, value, false); },
+            }, "🔎"));
+            buttons.appendChild(makeElement("span", {
+                "classList": "filter2 filter-exclude",
+                "onclick": function() { addFilter(key, value, true); },
+            }, "🗑"));
+            row.appendChild(buttons);
+
+            row.appendChild(makeElement("td", {}, key));
+            row.appendChild(makeElement("td", {}, makeElement("pre", {}, value.toString())));
+            tbody.appendChild(row);
+        })
+    table.appendChild(tbody);
+    return table;
+}
+
+function flattenObject(res, prefix, obj) {
+    Object.entries(obj).forEach(([key, value]) => {
+        if (!!value && value.constructor == Object) {
+            flattenObject(res, (prefix ? prefix + "." : "") + key, value);
+        } else {
+            res[(prefix ? prefix + "." : "") + key] = value;
+        }
+    });
+    return res;
+}
+
+function makeElement(tag, attrs, content) {
+    let el = document.createElement(tag);
+    for (key in attrs) {
+        el[key] = attrs[key];
+    }
+    if (typeof content == "string") {
+        el.textContent = content;
+    } else if (content) {
+        el.appendChild(content);
+    }
+    return el;
+}
+
+function addFilter(key, value, exclude) {
+    if (exclude) {
         key = "-" + key;
     }
     var u = new URL(location.href);
-    u.searchParams.append(key, element.parentElement.firstChild.textContent);
+    u.searchParams.append(key, value);
     location.href = u.href;
 }
