@@ -168,10 +168,10 @@ if __name__ == '__main__':
             """ Test url conversion. """
 
             query = Query(self.config)
-            self.assertEqual(query.as_url('/'), '/?dc=default&index=application-*')
+            self.assertEqual(query.as_url('/'), '/?dc=default&index=application-*&from=now-5m&to=now')
 
             query = Query(self.config, level='WARN')
-            self.assertEqual(query.as_url('/'), '/?dc=default&index=application-*&level=WARN')
+            self.assertEqual(query.as_url('/'), '/?dc=default&index=application-*&from=now-5m&to=now&level=WARN')
 
         def assert_defaults(self, query, args=None):
             """ Assert query params. """
