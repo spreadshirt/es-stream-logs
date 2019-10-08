@@ -20,6 +20,7 @@ from flask import Flask, Response, abort, escape, request
 
 # project internal modules
 import config
+import render
 import tinygraph
 
 APP = Flask(__name__)
@@ -329,20 +330,6 @@ def serve_aggregation():
     args = consolidate_args(request.args, exceptions=ONLY_ONCE_ARGUMENTS)
     return aggregation(es_client, **args)
 
-def link_trace_logs(dc, index, from_timestamp, to_timestamp, trace_id):
-    """ Create link for logs about trace_id. """
-    params = []
-    if dc != 'dc1':
-        params.append(('dc', dc))
-    if index != 'application-*':
-        params.append(('index', index))
-    if from_timestamp != 'now-5m':
-        params.append(('from', from_timestamp))
-    if to_timestamp != 'now':
-        params.append(('to', to_timestamp))
-    params.append(('tracing.trace_id', trace_id))
-    return '/logs?' + '&'.join(map(lambda item: item[0] + "=" + item[1], params))
-
 def parse_doc_timestamp(timestamp: str):
     """ Parse the timestamp of an elasticsearch document. """
     try:
@@ -396,38 +383,8 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
     yield ""
 
     if fmt == "html":
-        yield """<!doctype html>
-<html>
-<head>
-    <link rel="stylesheet" href="/static/pretty.css" />
-</head>
-<body>
-
-<section class="stats">
-    <p><span id="stats-num-hits">0</span> hits</p>
-</section>
-
-<div id="histogram_container">
-<object id="histogram" type="image/svg+xml" data=""" + '"' + aggregation_url + '"' + """></object>
-</div>
-
-<script src="/static/enhance.js" defer async></script>
-
-<table>
-<thead>
-<tr>
-"""
-
-        yield "<td></td>" # for expand placeholder
-        for field in fields:
-            yield f"<td class=\"field\" data-class=\"field-{escape(field)}\">{escape(field)}</td>"
-
-        yield """
-</tr>
-</thead>
-
-<tbody>
-"""
+        renderer = render.HTMLRenderer()
+        yield renderer.start(dc, index, fields, kwargs)
 
     query_count = 0
     while True:
@@ -437,27 +394,17 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
             resp = es.search(index=index, body=query)
         except elasticsearch.ConnectionTimeout as ex:
             print(ex)
-            yield f"<tr data-source=\"{escape(json.dumps(query))}\">\n"
-            yield "<td class=\"toggle-expand\">+</td> "
-            yield f"<td class=\"warning\" colspan=\"{len(fields)}\">Warning: Connection timeout: {ex} (Check details for query)</td>"
-            yield "</tr>\n"
-
-            yield f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
-
+            if renderer:
+                yield renderer.error(query, fields, ex)
             time.sleep(10)
             continue
         except elasticsearch.ElasticsearchException as ex:
             print(ex)
-            yield f"<tr><td class=\"error\" colspan=\"{1 + len(fields)}\">ERROR!: {escape(str(ex))}</td></tr>\n"
             return
 
         if query_count <= 1 and not resp['hits']['hits']:
-            yield f"<tr data-source=\"{escape(json.dumps(query))}\">\n"
-            yield "<td class=\"toggle-expand\">+</td> "
-            yield f"<td class=\"warning\" colspan=\"{len(fields)}\">Warning: No results matching query (Check details for query)</td>"
-            yield "</tr>\n"
-
-            yield f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
+            if renderer:
+                yield renderer.no_results(query, fields)
             time.sleep(10)
             continue
 
@@ -488,29 +435,7 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
             if fmt == "json":
                 yield json.dumps(source)
             if fmt == "html":
-                yield f"<tr class=\"row\" data-source=\"{escape(json.dumps(hit['_source']))}\">\n"
-                yield "<td class=\"toggle-expand\">+</td>"
-                for field in fields:
-                    val = escape(source.get(field, ''))
-                    classes = [f"field-{escape(field)}"]
-                    if field == "_source":
-                        val = json.dumps(hit['_source'])
-                        val = f"<div class=\"source-flattened\">{escape(val)}</div>"
-                    if field == "tracing.trace_id" and val:
-                        classes += ["break-strings"]
-                        trace_id = escape(val)
-                        val = f"<a href=\"https://tracing.example.com/?traceId={trace_id}&dc={dc}\">{trace_id}</a>"
-                        trace_id_logs = link_trace_logs(dc, index, 'now-14d', to_timestamp, trace_id)
-                        val += f" <a class=\"trace-logs\" title=\"Logs for trace_id {trace_id}\"href=\"{trace_id_logs}\">…</a>"
-                    yield f"    <td data-field=\"{escape(field)}\" class=\"{' '.join(classes)}\">"
-                    yield "<div class=\"field-container\">"
-                    yield val
-                    yield "</div>"
-                    yield "<span class=\"filter filter-include\">🔎</span>"
-                    yield "<span class=\"filter filter-exclude\">🗑</span>"
-                    yield "</td>\n"
-                yield "</tr>\n"
-                yield f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(fields)}\"></td></tr>\n"
+                yield renderer.result(dc, index, fields, hit, source, to_timestamp)
             else:
                 if fields != "all":
                     yield separator.join((str(val) for val in source.values()))
@@ -527,6 +452,8 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
         seen = last_seen
 
         if to_timestamp != 'now' and all_hits_seen:
+            if renderer:
+                yield renderer.end()
             return
 
         # print space to try and keep connection open
