@@ -8,7 +8,6 @@ query than Kibana, at least for ad-hoc queries.
 """
 
 from datetime import datetime
-import json
 import os
 import sys
 import time
@@ -361,14 +360,10 @@ def collect_fields(cfg, fields, **kwargs):
                 fields += additional_fields
     return fields
 
-def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, separator=" ", **kwargs):
+def stream_logs(es, renderer, dc='dc1', index="application-*", fields=None, **kwargs):
     """ Contruct query and stream logs given the elasticsearch client and parameters. """
 
     fields = collect_fields(CONFIG, fields, index=index, **kwargs)
-
-    kwargs_query = map(lambda item: item[0] + "=" + item[1],
-                       [('dc', dc), ('index', index)] + list(kwargs.items()))
-    aggregation_url = '/aggregation.svg?' + "&".join(kwargs_query)
 
     from_timestamp = kwargs.get("from", "now-5m")
     to_timestamp = kwargs.get("to", "now")
@@ -379,12 +374,7 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
     last_timestamp = from_timestamp
     seen = {}
 
-    # send something so we return an initial response
-    yield ""
-
-    if fmt == "html":
-        renderer = render.HTMLRenderer()
-        yield renderer.start(dc, index, fields, kwargs)
+    yield renderer.start(dc, index, fields, kwargs)
 
     query_count = 0
     while True:
@@ -394,12 +384,12 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
             resp = es.search(index=index, body=query)
         except elasticsearch.ConnectionTimeout as ex:
             print(ex)
-            if renderer:
-                yield renderer.error(query, fields, ex)
+            yield renderer.error(query, fields, ex)
             time.sleep(10)
             continue
         except elasticsearch.ElasticsearchException as ex:
             print(ex)
+            yield renderer.error(query, fields, ex)
             return
 
         if query_count <= 1 and not resp['hits']['hits']:
@@ -432,28 +422,11 @@ def stream_logs(es, dc='dc1', index="application-*", fmt="html", fields=None, se
             else:
                 last_timestamp = max(timestamp, last_timestamp)
 
-            if fmt == "json":
-                yield json.dumps(source)
-            if fmt == "html":
-                yield renderer.result(dc, index, fields, hit, source, to_timestamp)
-            else:
-                if fields != "all":
-                    yield separator.join((str(val) for val in source.values()))
-                else:
-                    try:
-                        hostname = source.get('hostname', source.get('HOSTNAME', '<no-hostname>'))
-                        yield f"{source['@timestamp']} -- {source['level']} [{hostname}] {source['message']}"
-                        if 'thread_name' in source:
-                            yield f": {source['thread_name']}"
-                        if 'stack_trace' in source:
-                            yield f"\n{source['stack_trace']}"
-                    except KeyError:
-                        yield str(source)
+            yield renderer.result(dc, index, fields, hit, source, to_timestamp)
         seen = last_seen
 
         if to_timestamp != 'now' and all_hits_seen:
-            if renderer:
-                yield renderer.end()
+            yield renderer.end()
             return
 
         # print space to try and keep connection open
@@ -487,13 +460,16 @@ def consolidate_args(args, exceptions=None):
         into our internal comma-separated format. """
     res = {}
     for key, values in args.to_dict(flat=False).items():
+        if key in ["fmt"]:
+            continue
+
         if exceptions and key in exceptions:
             res[key] = values[-1]
         else:
             res[key] = ','.join(values)
     return res
 
-ONLY_ONCE_ARGUMENTS = ["fmt", "from", "to", "dc", "index", "interval"]
+ONLY_ONCE_ARGUMENTS = ["from", "to", "dc", "index", "interval"]
 
 @APP.route('/logs')
 def serve_logs():
@@ -506,6 +482,7 @@ def serve_logs():
 
     fmt = request.args.get("fmt", "html")
     if fmt == "html":
+        renderer = render.HTMLRenderer()
         content_type = "text/html"
         csp = [
             "default-src 'none'",
@@ -516,12 +493,13 @@ def serve_logs():
             ]
         headers['Content-Security-Policy'] = "; ".join(csp)
     elif fmt == "json":
+        renderer = render.JSONRenderer()
         content_type = "application/json"
-    elif fmt == "text":
-        content_type = "text/plain"
+    else:
+        raise Exception(f"unknown output format '{fmt}'")
 
     args = consolidate_args(request.args, exceptions=ONLY_ONCE_ARGUMENTS)
-    return Response(stream_logs(es_client, **args), headers=headers,
+    return Response(stream_logs(es_client, renderer, **args), headers=headers,
                     content_type=content_type+'; charset=utf-8')
 
 CONFIG = None
