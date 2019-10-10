@@ -409,10 +409,11 @@ def serve_logs():
         content_type = "text/html"
         csp = [
             "default-src 'none'",
-            "img-src 'self'", # favicon
+            "img-src 'self'",    # favicon
             "script-src 'self'",
             "style-src 'self'",
-            "object-src 'self'" # histogram
+            "object-src 'self'", # histogram
+            "frame-src 'self'",  # histogram in chromium
             ]
         headers['Content-Security-Policy'] = "; ".join(csp)
     elif fmt == "json":
