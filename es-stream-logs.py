@@ -323,7 +323,7 @@ def stream_logs(es, renderer, query: Query):
         except elasticsearch.ConnectionTimeout as ex:
             print(ex)
             yield renderer.error(ex, es_query)
-            time.sleep(10)
+            time.sleep(1)
             continue
         except elasticsearch.ElasticsearchException as ex:
             print(ex)
@@ -332,7 +332,7 @@ def stream_logs(es, renderer, query: Query):
 
         if query_count <= 1 and not resp['hits']['hits']:
             yield renderer.no_results(es_query)
-            time.sleep(10)
+            time.sleep(1)
             continue
 
         all_hits_seen = True
