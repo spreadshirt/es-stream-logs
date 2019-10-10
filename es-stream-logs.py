@@ -331,8 +331,7 @@ def stream_logs(es, renderer, query: Query):
             return
 
         if query_count <= 1 and not resp['hits']['hits']:
-            if renderer:
-                yield renderer.no_results(es_query)
+            yield renderer.no_results(es_query)
             time.sleep(10)
             continue
 
