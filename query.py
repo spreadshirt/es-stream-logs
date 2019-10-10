@@ -114,6 +114,7 @@ class Query:
                       ('index', self.index),
                       ('from', self.from_timestamp),
                       ('to', self.to_timestamp),
+                      ('interval', self.interval),
                      ] + list(self.args.items()))
         return base_url + '?' + "&".join(params)
 
@@ -168,10 +169,10 @@ if __name__ == '__main__':
             """ Test url conversion. """
 
             query = Query(self.config)
-            self.assertEqual(query.as_url('/'), '/?dc=default&index=application-*&from=now-5m&to=now')
+            self.assertEqual(query.as_url('/'), '/?dc=default&index=application-*&from=now-5m&to=now&interval=auto')
 
             query = Query(self.config, level='WARN')
-            self.assertEqual(query.as_url('/'), '/?dc=default&index=application-*&from=now-5m&to=now&level=WARN')
+            self.assertEqual(query.as_url('/'), '/?dc=default&index=application-*&from=now-5m&to=now&interval=auto&level=WARN')
 
         def assert_defaults(self, query, args=None):
             """ Assert query params. """
