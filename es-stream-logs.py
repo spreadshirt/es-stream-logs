@@ -37,7 +37,7 @@ def favicon_route():
 def index_route():
     """ GET / """
 
-    return """
+    return f"""
 <!doctype html>
 <html>
 <head>
@@ -48,20 +48,26 @@ def index_route():
 <body>
     <h1>Stream logs!</h1>
 
-    <pre>
+    <pre><em>Streams logs from elasticsearch, controllable via query parameters.
+
+Loads (much) faster than Kibana, queries can be generated easily.</em>
+
+
 GET /     - documentation
 
 GET /logs - stream logs from elasticsearch
 
-  Parameters:
+  Query parameters:
 
-    - dc: "dc1", "dc3" or "dc2"
+    - <strong>dc</strong>: "dc1", "dc3" or "dc2"
       defaults to "dc1"
-    - index: index to query
+    - <strong>index</strong>: index to query
       defaults to "application-*"
 
-    - use `&lt;any-field&gt;=&lt;anyvalue&gt;` or `&lt;any-field&gt;=&lt;value1&gt;,&lt;value2&gt;,&lt;value3&gt;`
-      as query paramters to require a field to have certain values
+    Result selection:
+
+    - use `field=value` or `field=value1,value2`
+      as query parameters to <strong>require</strong> a field to match certain values
 
       e.g.:
 
@@ -69,17 +75,33 @@ GET /logs - stream logs from elasticsearch
       - `application_name=api,login,registration&level=ERROR`
       - `level=ERROR`
 
-    - q: elastic search query string query
-        (See https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax)
+    - use `-field=value` to <strong>exclude</strong> specific values
 
-    - from: how far to fetch messages from the past, e.g. 'now-3d'
+    - use `field` (without `=value`) to require that a field <strong>exists</strong>
+
+    - use `-field` to require that a field <strong>does not exist</strong>
+
+    - <strong>q</strong>: elastic search query string query
+        (See <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax">https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax</a>)
+
+    Timerange:
+
+    - <strong>from</strong>: how far to fetch messages from the past, e.g. 'now-3d'
       defaults to 'now-5m'
-    - to: last timestamp to fetch messages for
+    - <strong>to</strong>: last timestamp to fetch messages for
       defaults to 'now'
 
-    - fmt: "text" or "json"
-      defaults to "text", "json" outputs one log entry per line as a json object
-    - fields: if fmt is "json", output only the given fields
+    Output:
+
+    - <strong>fields</strong>: select fields for output
+
+        If no fields are specified, default fields will be selected from
+        configuration, allowing application-specific default fields.
+
+        To add fields to the default ones, use `fields=,additional-field`.
+
+    - <strong>fmt</strong>: "html" or "json"
+      defaults to "html", "json" outputs one log entry per line as a json object
   </pre>
 
   <h3>Examples:</h3>
