@@ -405,7 +405,7 @@ def serve_logs():
 
     fmt = request.args.get("fmt", "html")
     if fmt == "html":
-        renderer = render.HTMLRenderer(query)
+        renderer = render.HTMLRenderer(CONFIG, query)
         content_type = "text/html"
         csp = [
             "default-src 'none'",

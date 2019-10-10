@@ -33,6 +33,7 @@ class Config:
     default_endpoint: str
     endpoints: Dict[str, Endpoint]
 
+    field_format: Dict[str, str]
     default_fields: List[DefaultFields]
 
     def __post_init__(self):

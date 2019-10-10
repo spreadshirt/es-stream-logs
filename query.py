@@ -109,6 +109,10 @@ class Query:
 
     def as_url(self, base_url):
         """ Render query as url. """
+        return base_url + '?' + self.as_params()
+
+    def as_params(self):
+        """ Render query as query params. """
         params = map(lambda item: item[0] + "=" + item[1],
                      [('dc', self.datacenter),
                       ('index', self.index),
@@ -116,7 +120,7 @@ class Query:
                       ('to', self.to_timestamp),
                       ('interval', self.interval),
                      ] + list(self.args.items()))
-        return base_url + '?' + "&".join(params)
+        return "&".join(params)
 
 def collect_fields(cfg, fields, **kwargs):
     """ Collects fields by the given ones, or one of the default ones

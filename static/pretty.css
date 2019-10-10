@@ -40,6 +40,7 @@ td {
     font-size: 14px;
     font-family: monospace;
     word-wrap: break-word;
+    overflow-wrap: anywhere;
     overflow-y: auto;
     vertical-align: top;
 }
@@ -60,10 +61,6 @@ td:first-of-type, td:last-of-type {
 
 .row td:hover .filter, .source tr:hover .filter2 {
     visibility: visible;
-}
-
-td.break-strings {
-    overflow-wrap: anywhere;
 }
 
 td .field-container {
