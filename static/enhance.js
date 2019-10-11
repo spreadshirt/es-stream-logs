@@ -137,7 +137,7 @@ function renderSourceTable(source) {
             row.appendChild(buttons);
 
             row.appendChild(makeElement("td", {}, key));
-            row.appendChild(makeElement("td", {}, makeElement("pre", {}, value.toString())));
+            row.appendChild(makeElement("td", {}, makeElement("pre", {}, (value === null ? "null" : value.toString()))));
             tbody.appendChild(row);
         })
     table.appendChild(tbody);
