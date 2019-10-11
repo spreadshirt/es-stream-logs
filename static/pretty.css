@@ -1,5 +1,9 @@
-.stats {
-    font-family: monospace;
+body {
+  font-family: monospace;
+}
+
+#query .time {
+    float: right;
 }
 
 #histogram_container {
@@ -43,7 +47,6 @@ td {
     box-sizing: border-box;
     border-bottom: 1px solid #ddd;
     font-size: 14px;
-    font-family: monospace;
     word-wrap: break-word;
     overflow-wrap: anywhere;
     overflow-y: auto;

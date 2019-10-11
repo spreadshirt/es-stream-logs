@@ -32,6 +32,7 @@ class Config:
 
     default_endpoint: str
     endpoints: Dict[str, Endpoint]
+    indices: List[str]
 
     field_format: Dict[str, str]
     default_fields: List[DefaultFields]

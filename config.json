@@ -5,6 +5,14 @@
     "dc1": {"url": "https://elasticsearch-dc1.example.com:443"},
     "dc2": {"url": "https://elasticsearch-dc2.example.com:443"}
   },
+  "indices": [
+    "application-*",
+    "cdn-*",
+    "dc-routing-*",
+    "kubernetes-*",
+    "syslog-*",
+    "*"
+  ],
   "field_format": {
     "tracing.trace_id": "<a href=\"https://tracing.example.com/?traceId={tracing.trace_id}&dc={dc}\">{tracing.trace_id}</a> <a class=\"trace-logs\" title=\"Logs for trace_id {tracing.trace_id}\"href=\"/logs?{__query}&from=now-14d&tracing.trace_id={tracing.trace_id}\">…</a>"
   },

@@ -26,7 +26,11 @@ class HTMLRenderer:
     <link rel="stylesheet" href="/static/pretty.css" />
 </head>
 <body>
+"""
 
+        start += self.render_query()
+
+        start += """
 <section class="stats">
     <p><span id="stats-num-hits">0</span> hits</p>
 </section>
@@ -53,6 +57,47 @@ class HTMLRenderer:
 <tbody>
 """
         return start
+
+    def render_query(self):
+        """ Render query params and things. """
+
+        res = """<form id="query" method="GET" action="/logs" autocomplete="off">"""
+
+        res += """<select name="dc" title="datacenter">"""
+        for datacenter in self.config.endpoints.keys():
+            selected = ""
+            if datacenter == self.query.datacenter:
+                selected = " selected"
+            res += f"""
+    <option value="{datacenter}"{selected}>{datacenter}</option>"""
+        res += """</select>"""
+
+        res += f"""<input type="text" name="index" title="elasticsearch index" list="indices"
+    value="{self.query.index}" autocomplete="on" />"""
+        res += """<datalist id="indices">"""
+        for index in self.config.indices:
+            res += f"""<option value="{index}">{index}</option>"""
+        res += """</datalist>"""
+
+        res += f"""<input type="search" name="q" value="{self.query.query_string or ""}"
+    placeholder="query string query" />"""
+
+        for field, value in self.query.args.items():
+            res += f"""<span class="field-filter">
+    <label for="{field}">{field}:</label>
+    <input type="text" name="{field}" value="{value}" />
+</span>"""
+
+        res += f"""<span class="time">
+    <input type="text" name="from" value="{self.query.from_timestamp}" />
+    <input type="text" name="to" value="{self.query.to_timestamp}" />
+</span>
+"""
+
+        res += """<input type="submit" value="Update" />"""
+
+        res += """</form>"""
+        return res
 
     def result(self, hit, source):
         """ Renders a single result. """
