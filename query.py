@@ -113,14 +113,15 @@ class Query:
 
     def as_params(self):
         """ Render query as query params. """
-        params = map(lambda item: item[0] + "=" + item[1],
-                     [('dc', self.datacenter),
-                      ('index', self.index),
-                      ('from', self.from_timestamp),
-                      ('to', self.to_timestamp),
-                      ('interval', self.interval),
-                     ] + list(self.args.items()))
-        return "&".join(params)
+        params = [('dc', self.datacenter),
+                  ('index', self.index),
+                  ('from', self.from_timestamp),
+                  ('to', self.to_timestamp),
+                  ('interval', self.interval),
+                 ] + list(self.args.items())
+        if self.query_string:
+            params += [("q", self.query_string)]
+        return "&".join(map(lambda item: item[0] + "=" + item[1], params))
 
 def collect_fields(cfg, fields, **kwargs):
     """ Collects fields by the given ones, or one of the default ones
