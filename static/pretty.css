@@ -6,6 +6,10 @@ body {
     float: right;
 }
 
+#query .exclude label {
+    text-decoration: line-through;
+}
+
 #histogram_container {
     height: 130px;
 }

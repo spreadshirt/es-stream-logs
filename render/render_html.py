@@ -83,7 +83,10 @@ class HTMLRenderer:
     placeholder="query string query" />"""
 
         for field, value in self.query.args.items():
-            res += f"""<span class="field-filter">
+            classes = "field-filter"
+            if field.startswith("-"):
+                classes += " exclude"
+            res += f"""<span class="{classes}">
     <label for="{field}">{field}:</label>
     <input type="text" name="{field}" value="{value}" />
 </span>"""
