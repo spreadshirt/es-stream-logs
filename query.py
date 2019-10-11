@@ -152,7 +152,8 @@ if __name__ == '__main__':
         """ Test query class. """
 
         def setUp(self):
-            self.config = Config(default_endpoint='default', endpoints=[], default_fields={})
+            self.config = Config(default_endpoint='default', endpoints=[],
+                                 field_format={}, default_fields={})
 
         def test_parse_defaults(self):
             """ Test defaults. """
