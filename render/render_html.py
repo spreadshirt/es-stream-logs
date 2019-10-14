@@ -84,8 +84,12 @@ class HTMLRenderer:
             fields = self.query.fields_original
             res += f"""<input type="text" name="fields" hidden value="{fields}" />\n\n"""
 
-        res += f"""<input type="search" name="q" value="{self.query.query_string or ""}"
-    placeholder="query string query" />\n\n"""
+        res += f"""<span>
+<label for="q">q:</label>
+<input type="search" name="q" value="{self.query.query_string or ""}"
+    placeholder="query string query" />
+</span>
+"""
 
         for field, value in self.query.args.items():
             classes = "field-filter"
