@@ -72,10 +72,10 @@ class Query:
             else:
                 if "," in val:
                     filters.append({"bool" : {
-                        "should": [{"match": {key: v}} for v in val.split(',')]
+                        "should": [{"match_phrase": {key: v}} for v in val.split(',')]
                         }})
                 else:
-                    filters.append({"match": {key: val}})
+                    filters.append({"match_phrase": {key: val}})
 
             if exclude:
                 excluded_filters.extend(filters)
