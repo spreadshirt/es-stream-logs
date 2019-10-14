@@ -38,6 +38,7 @@ class Query:
         self.query_string = kwargs.pop("q", None)
 
         fields = kwargs.pop("fields", None)
+        self.fields_original = fields
         self.fields = collect_fields(config, fields, index=self.index, **kwargs)
 
         self.args = kwargs

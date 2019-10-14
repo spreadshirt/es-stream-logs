@@ -80,6 +80,10 @@ class HTMLRenderer:
             res += f"""    <option value="{index}">{index}</option>\n"""
         res += """</datalist>\n\n"""
 
+        if self.query.fields_original:
+            fields = self.query.fields_original
+            res += f"""<input type="text" name="fields" hidden value="{fields}" />\n\n"""
+
         res += f"""<input type="search" name="q" value="{self.query.query_string or ""}"
     placeholder="query string query" />\n\n"""
 
