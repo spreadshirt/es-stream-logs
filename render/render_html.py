@@ -61,7 +61,7 @@ class HTMLRenderer:
     def render_query(self):
         """ Render query params and things. """
 
-        res = """<form id="query" method="GET" action="/logs" autocomplete="off">"""
+        res = """<form id="query" method="GET" action="/logs" autocomplete="off">\n"""
 
         res += """<select name="dc" title="datacenter">"""
         for datacenter in self.config.endpoints.keys():
@@ -70,17 +70,18 @@ class HTMLRenderer:
                 selected = " selected"
             res += f"""
     <option value="{datacenter}"{selected}>{datacenter}</option>"""
-        res += """</select>"""
+        res += """\n</select>\n\n"""
 
         res += f"""<input type="text" name="index" title="elasticsearch index" list="indices"
-    value="{self.query.index}" autocomplete="on" />"""
+    value="{self.query.index}" autocomplete="on" />
+"""
         res += """<datalist id="indices">"""
         for index in self.config.indices:
-            res += f"""<option value="{index}">{index}</option>"""
-        res += """</datalist>"""
+            res += f"""    <option value="{index}">{index}</option>\n"""
+        res += """</datalist>\n\n"""
 
         res += f"""<input type="search" name="q" value="{self.query.query_string or ""}"
-    placeholder="query string query" />"""
+    placeholder="query string query" />\n\n"""
 
         for field, value in self.query.args.items():
             classes = "field-filter"
@@ -89,17 +90,17 @@ class HTMLRenderer:
             res += f"""<span class="{classes}">
     <label for="{field}">{field}:</label>
     <input type="text" name="{field}" value="{value}" />
-</span>"""
-
-        res += f"""<span class="time">
-    <input type="text" name="from" value="{self.query.from_timestamp}" />
-    <input type="text" name="to" value="{self.query.to_timestamp}" />
 </span>
 """
 
-        res += """<input type="submit" value="Update" />"""
+        res += f"""\n<span class="time">
+    <input type="text" name="from" value="{self.query.from_timestamp}" />
+    <input type="text" name="to" value="{self.query.to_timestamp}" />
+</span>\n\n"""
 
-        res += """</form>"""
+        res += """<input type="submit" value="Update" />\n"""
+
+        res += """</form>\n\n"""
         return res
 
     def result(self, hit, source):
