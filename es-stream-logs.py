@@ -169,7 +169,7 @@ def parse_timestamp(timestamp):
         pass
 
     try:
-        return time.mktime(time.strptime('2019-09-09T00:00:03Z', '%Y-%m-%dT%H:%M:%SZ'))
+        return time.mktime(time.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ'))
     except ValueError:
         pass
 
