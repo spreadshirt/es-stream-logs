@@ -77,8 +77,10 @@ GET /logs - stream logs from elasticsearch
 
     - use `-field=value` to <strong>exclude</strong> specific values
 
-    - use `field` (without `=value`) to require that a field <strong>exists</strong>
+    - use `field=&gt;value` to require a fields' values are <strong>greater than</strong> value
+    - use `field=&lt;value` to require a fields' values are <strong>less than</strong> value
 
+    - use `field` (without `=value`) to require that a field <strong>exists</strong>
     - use `-field` to require that a field <strong>does not exist</strong>
 
     - <strong>q</strong>: elastic search query string query
