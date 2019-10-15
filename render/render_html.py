@@ -73,20 +73,20 @@ class HTMLRenderer:
         res += """\n</select>\n\n"""
 
         res += f"""<input type="text" name="index" title="elasticsearch index" list="indices"
-    value="{self.query.index}" autocomplete="on" />
+    value="{escape(self.query.index)}" autocomplete="on" />
 """
         res += """<datalist id="indices">"""
         for index in self.config.indices:
-            res += f"""    <option value="{index}">{index}</option>\n"""
+            res += f"""    <option value="{escape(index)}">{escape(index)}</option>\n"""
         res += """</datalist>\n\n"""
 
         if self.query.fields_original:
             fields = self.query.fields_original
-            res += f"""<input type="text" name="fields" hidden value="{fields}" />\n\n"""
+            res += f"""<input type="text" name="fields" hidden value="{escape(fields)}" />\n\n"""
 
         res += f"""<span>
 <label for="q">q:</label>
-<input type="search" name="q" value="{self.query.query_string or ""}"
+<input type="search" name="q" value="{escape(self.query.query_string) or ""}"
     placeholder="query string query" />
 </span>
 """
@@ -96,14 +96,14 @@ class HTMLRenderer:
             if field.startswith("-"):
                 classes += " exclude"
             res += f"""<span class="{classes}">
-    <label for="{field}">{field}:</label>
-    <input type="text" name="{field}" value="{value}" />
+    <label for="{escape(field)}">{escape(field)}:</label>
+    <input type="text" name="{escape(field)}" value="{escape(value)}" />
 </span>
 """
 
         res += f"""\n<span class="time">
-    <input type="text" name="from" value="{self.query.from_timestamp}" />
-    <input type="text" name="to" value="{self.query.to_timestamp}" />
+    <input type="text" name="from" value="{escape(self.query.from_timestamp)}" />
+    <input type="text" name="to" value="{escape(self.query.to_timestamp)}" />
 </span>\n\n"""
 
         res += """<input type="submit" value="Update" />\n"""
