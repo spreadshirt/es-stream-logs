@@ -10,6 +10,16 @@ body {
     text-decoration: line-through;
 }
 
+#query .field-filter .remove-filter {
+    visibility: hidden;
+    font-size: larger;
+    cursor: pointer;
+}
+
+#query:hover .field-filter .remove-filter {
+	visibility: visible;
+}
+
 #histogram_container {
     height: 130px;
 }

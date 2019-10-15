@@ -31,6 +31,21 @@ window.addEventListener("DOMContentLoaded", function() {
     histogramRefresh = false;
 });
 
+var query = document.querySelector("#query");
+var queryFilters = document.querySelectorAll(".field-filter");
+for (let i = 0; i < queryFilters.length; i++) {
+	let queryFilter = queryFilters[i];
+	let removeFilterButton = makeElement("span", {
+		"title": "Remove filter",
+		"classList": "remove-filter",
+		"onclick": function(ev) {
+			queryFilter.parentElement.removeChild(queryFilter);
+			query.submit();
+		}
+	}, "🗑");
+	queryFilter.appendChild(removeFilterButton);
+}
+
 document.body.addEventListener('click', function(ev) {
     if (ev.target.classList.contains("toggle-expand")) {
         expandSource(ev.target);
