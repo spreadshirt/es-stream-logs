@@ -142,10 +142,12 @@ function renderSourceTable(source) {
 
             let buttons = makeElement("td");
             buttons.appendChild(makeElement("span", {
+                "title": "Filter for results matching value",
                 "classList": "filter2 filter-include",
                 "onclick": function() { addFilter(key, value, false); },
             }, "🔎"));
             buttons.appendChild(makeElement("span", {
+                "title": "Exclude results matching value",
                 "classList": "filter2 filter-exclude",
                 "onclick": function() { addFilter(key, value, true); },
             }, "🗑"));
