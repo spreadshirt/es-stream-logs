@@ -125,7 +125,8 @@ class HTMLRenderer:
             if field in self.config.field_format and val:
                 fmt = self.config.field_format[field]
                 val = FieldFormatter().format(fmt, __query=self.query.as_params(),
-                                              dc=self.query.datacenter, **hit['_source'])
+                                              dc=self.query.datacenter, index=self.query.index,
+                                              **hit['_source'])
 
             result += f"    <td data-field=\"{escape(field)}\" class=\"{' '.join(classes)}\">"
             result += "<div class=\"field-container\">"
