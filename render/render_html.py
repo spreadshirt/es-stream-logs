@@ -86,7 +86,7 @@ class HTMLRenderer:
 
         res += f"""<span>
 <label for="q">q:</label>
-<input type="search" name="q" value="{escape(self.query.query_string) or ""}"
+<input type="search" name="q" value="{escape(self.query.query_string or "")}"
     placeholder="query string query" />
 </span>
 """
