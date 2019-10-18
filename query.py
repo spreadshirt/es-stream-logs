@@ -129,7 +129,7 @@ def collect_fields(cfg, fields, **kwargs):
         from the configuration. """
     additional_fields = None
     if isinstance(fields, str) and fields.startswith(","):
-        additional_fields = [remove_prefix(field, ",") for field in fields.split(',')]
+        additional_fields = [remove_prefix(field, ",") for field in fields.split(',')[1:]]
 
     if fields and not additional_fields:
         fields = fields.split(',')
