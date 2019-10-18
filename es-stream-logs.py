@@ -134,7 +134,10 @@ def filter_dict(source, fields):
     res = {}
     for key in fields:
         try:
-            val = nested_get(source, key.split("."))
+            if key in source:
+                val = source[key]
+            else:
+                val = nested_get(source, key.split("."))
             res[key] = val
         except (IndexError, KeyError, ValueError):
             pass
