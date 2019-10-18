@@ -43,6 +43,16 @@ def index_route():
 <head>
     <meta charset="utf-8" />
     <title>Stream logs!</title>
+
+    <style>
+    h1, h2, h3 {{
+        margin: 0;
+    }}
+
+    pre {{
+        white-space: pre-wrap;
+    }}
+    </style>
 </head>
 
 <body>
@@ -51,7 +61,6 @@ def index_route():
     <pre><em>Streams logs from elasticsearch, controllable via query parameters.
 
 Loads (much) faster than Kibana, queries can be generated easily.</em>
-
 
 GET /     - documentation
 
@@ -83,8 +92,7 @@ GET /logs - stream logs from elasticsearch
     - use `field` (without `=value`) to require that a field <strong>exists</strong>
     - use `-field` to require that a field <strong>does not exist</strong>
 
-    - <strong>q</strong>: elastic search query string query
-        (See <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax">https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax</a>)
+    - <strong>q</strong>: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax">elastic search query string query</a>
 
     Timerange:
 
@@ -103,8 +111,7 @@ GET /logs - stream logs from elasticsearch
         To add fields to the default ones, use `fields=,additional-field`.
 
     - <strong>fmt</strong>: "html" or "json"
-      defaults to "html", "json" outputs one log entry per line as a json object
-  </pre>"""
+      defaults to "html", "json" outputs one log entry per line as a json object</pre>"""
 
     html += """<h3>Examples:</h3>
 
