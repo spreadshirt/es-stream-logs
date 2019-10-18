@@ -117,6 +117,7 @@ class HTMLRenderer:
         result = f"<tr class=\"row\" data-source=\"{escape(json.dumps(hit['_source']))}\">\n"
         result += "<td class=\"toggle-expand\">+</td>"
         for field in self.query.fields:
+            has_val = field in source
             val = escape(source.get(field, ''))
             classes = [f"field-{escape(field)}"]
             if field == "_source":
@@ -133,6 +134,8 @@ class HTMLRenderer:
 
             if not has_val:
                 val = '-'
+            elif source.get(field, '') is None:
+                val = 'null'
             result += f"{val}"
 
             result += "</div>"
