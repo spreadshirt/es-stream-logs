@@ -37,7 +37,7 @@ def favicon_route():
 def index_route():
     """ GET / """
 
-    return f"""
+    html = f"""
 <!doctype html>
 <html>
 <head>
@@ -104,18 +104,20 @@ GET /logs - stream logs from elasticsearch
 
     - <strong>fmt</strong>: "html" or "json"
       defaults to "html", "json" outputs one log entry per line as a json object
-  </pre>
+  </pre>"""
 
-  <h3>Examples:</h3>
+    html += """<h3>Examples:</h3>
 
   <ul>
-    <li><a href="/logs?level=ERROR">/logs?level=ERROR</a></li>
-    <li><a href="/logs?application_name=api&level=ERROR,WARN">/logs?application_name=api&level=ERROR,WARN</a></li>
-    <li><a href="/logs?level=INFO&q=password">/logs?level=INFO&q=password</a></li>
-    <li><a href="/logs?level=INFO&q=password&fmt=json&fields=@timestamp,hostname,message,stack_trace">/logs?level=INFO&q=password&fmt=json&fields=@timestamp,hostname,message,stack_trace</a></li>
-  <ul>
-</body>
-    """
+"""
+    for query in CONFIG.queries:
+        html += f"""    <li><a href="{escape(query)}">{escape(query)}</a></li>\n"""
+    html += "</ul>"
+
+    html += """</body>
+</html>"""
+
+    return html
 
 def nested_get(dct, keys):
     """ Gets keys recursively from dict, e.g. nested_get({test: inner: 42}, ["test", "inner"])

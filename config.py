@@ -37,6 +37,8 @@ class Config:
     field_format: Dict[str, str]
     default_fields: List[DefaultFields]
 
+    queries: List[str]
+
     def __post_init__(self):
         for key in self.endpoints:
             self.endpoints[key] = Endpoint(**self.endpoints[key])
