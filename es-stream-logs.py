@@ -357,15 +357,14 @@ def stream_logs(es, renderer, query: Query):
 
             yield "\n"
 
-            if query.fields:
-                source = filter_dict(source, query.fields)
-
             timestamp = int(parse_doc_timestamp(hit['_source']['@timestamp']).timestamp()*1000)
             if isinstance(last_timestamp, str):
                 last_timestamp = timestamp
             else:
                 last_timestamp = max(timestamp, last_timestamp)
 
+            if query.fields:
+                source = filter_dict(source, query.fields)
             yield renderer.result(hit, source)
         seen = last_seen
 
