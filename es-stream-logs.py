@@ -192,6 +192,10 @@ def parse_timestamp(timestamp):
 def aggregation(es, query: Query):
     """ Do aggregation query. """
 
+    is_internal = "/logs?" in request.headers.get('Referer', '')
+    width = query.args.pop('width', '100%' if is_internal else '1800')
+    height = query.args.pop('height', '125' if is_internal else '600')
+
     logs_url = query.as_url('/logs')
 
     from_time = parse_timestamp(query.from_timestamp)
@@ -218,10 +222,16 @@ def aggregation(es, query: Query):
         total_count += bucket['doc_count']
         max_count = max(max_count, bucket['doc_count'])
 
-    query_str = ", ".join([f"{item[0]}={item[1]}" for item in query.args.items()])
-    img = """<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" class="chart" width="100%" height="125"
-     xmlns:xlink="http://www.w3.org/1999/xlink">
+    query_params = [('dc', query.datacenter), ('index', query.index)]
+    query_params += query.args.items()
+    query_params += [('from', query.from_timestamp), ('to', query.to_timestamp)]
+    query_str = ", ".join([f"{item[0]}={item[1]}" for item in query_params])
+
+    img = f"""<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" class="chart" width="{width}" height="{height}"
+     xmlns:xlink="http://www.w3.org/1999/xlink">"""
+
+    img += """
     <title id="title">Aggregation for query: """ + query_str + """</title>
     <style>
     svg {
@@ -254,7 +264,7 @@ def aggregation(es, query: Query):
     if num_results_buckets:
         avg_count = int(total_count / len(num_results_buckets))
 
-    img += f"""<text x="10" y="14">count per {interval}: max: {max_count}, avg: {avg_count}</text>"""
+    img += f"""<text x="10" y="14">{query_str + " | " if not is_internal else ''}count per {interval}: max: {max_count}, avg: {avg_count}</text>"""
 
     bucket_width = scale.factor * interval_s * 1000
 
