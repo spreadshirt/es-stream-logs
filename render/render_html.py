@@ -130,7 +130,11 @@ class HTMLRenderer:
 
             result += f"    <td data-field=\"{escape(field)}\" class=\"{' '.join(classes)}\">"
             result += "<div class=\"field-container\">"
+
+            if not has_val:
+                val = '-'
             result += f"{val}"
+
             result += "</div>"
             result += "<span class=\"filter filter-include\" title=\"Filter for results matching value\">🔎</span>"
             result += "<span class=\"filter filter-exclude\" title=\"Exclude results matching value\">🗑</span>"
