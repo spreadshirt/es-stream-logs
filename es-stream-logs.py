@@ -192,7 +192,7 @@ def parse_timestamp(timestamp):
 def aggregation(es, query: Query):
     """ Do aggregation query. """
 
-    is_internal = "/logs?" in request.headers.get('Referer', '')
+    is_internal = "/logs" in request.headers.get('Referer', '')
     width = query.args.pop('width', '100%' if is_internal else '1800')
     height = query.args.pop('height', '125' if is_internal else '600')
 
