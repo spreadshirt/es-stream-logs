@@ -156,6 +156,11 @@ function renderSourceTable(source) {
                 "classList": "filter2",
                 "onclick": function() { addField(key); },
             }, "🗍"));
+            buttons.appendChild(makeElement("span", {
+                "title": "Require field to be present",
+                "classList": "filter2",
+                "onclick": function() { requireField(key); },
+            }, "🞸"));
 
             row.appendChild(buttons);
 
@@ -197,6 +202,16 @@ function addFilter(key, value, exclude) {
     }
     var u = new URL(location.href);
     u.searchParams.append(key, value);
+    location.href = u.href;
+}
+
+function requireField(fieldName) {
+    var u = new URL(location.href);
+    if (u.search == "") {
+        u.search = "?" + fieldName;
+    } else {
+        u.search += "&" + fieldName;
+    }
     location.href = u.href;
 }
 
