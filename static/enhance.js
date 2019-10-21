@@ -151,6 +151,12 @@ function renderSourceTable(source) {
                 "classList": "filter2 filter-exclude",
                 "onclick": function() { addFilter(key, value, true); },
             }, "🗑"));
+            buttons.appendChild(makeElement("span", {
+                "title": "Add field",
+                "classList": "filter2",
+                "onclick": function() { addField(key); },
+            }, "🗍"));
+
             row.appendChild(buttons);
 
             row.appendChild(makeElement("td", {}, key));
@@ -191,5 +197,15 @@ function addFilter(key, value, exclude) {
     }
     var u = new URL(location.href);
     u.searchParams.append(key, value);
+    location.href = u.href;
+}
+
+function addField(fieldName) {
+    var u = new URL(location.href);
+    if (u.searchParams.has("fields")) {
+        u.searchParams.append("fields", fieldName);
+    } else {
+        u.searchParams.append("fields", "," + fieldName);
+    }
     location.href = u.href;
 }
