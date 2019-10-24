@@ -101,7 +101,7 @@ td:hover a.trace-logs {
     visibility: visible;
 }
 
-.source-hidden {
+#num-results, .source-hidden {
     display: none;
 }
 

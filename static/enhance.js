@@ -1,6 +1,14 @@
 var numHitsEl = document.getElementById("stats-num-hits");
 window.setInterval(function() {
-    numHitsEl.textContent = document.querySelectorAll("tbody tr.row").length;
+    let resultsCount = document.querySelectorAll("tbody tr.row").length;
+    numHitsMsg = `${resultsCount.toLocaleString()}`;
+    let numResultsEl = document.getElementById("num-results");
+    if (numResultsEl) {
+        let resultsTotal = parseInt(numResultsEl.dataset['resultsTotal']);
+        let tookMs = parseInt(numResultsEl.dataset['tookMs']);
+        numHitsMsg += ` of ${resultsTotal.toLocaleString()} results (took ${tookMs}ms)`;
+    }
+    numHitsEl.textContent = numHitsMsg;
 }, 1000);
 
 var histogramContainer = document.getElementById("histogram_container");

@@ -32,7 +32,7 @@ class HTMLRenderer:
 
         start += """
 <section class="stats">
-    <p><span id="stats-num-hits">0</span> hits</p>
+    <p><span id="stats-num-hits">0 results</span></p>
 </section>
 
 <div id="histogram_container">
@@ -57,6 +57,14 @@ class HTMLRenderer:
 <tbody>
 """
         return start
+
+    def num_results(self, results_total, took_ms):
+        """ Render info about number of results. """
+
+        return f"""<tr id="num-results"
+    data-results-total="{results_total}"
+    data-took-ms="{took_ms}">
+</tr>"""
 
     def render_query(self):
         """ Render query params and things. """

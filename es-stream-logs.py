@@ -364,6 +364,8 @@ def stream_logs(es, renderer, query: Query):
             resp = es.search(index=query.index, body=es_query)
             if query_count == 1:
                 results_total = resp['hits']['total']['value']
+                took_ms = resp['took']
+                yield renderer.num_results(results_total, took_ms)
         except elasticsearch.ConnectionTimeout as ex:
             print(ex)
             yield renderer.error(ex, es_query)
