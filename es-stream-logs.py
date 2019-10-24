@@ -355,11 +355,15 @@ def stream_logs(es, renderer, query: Query):
     yield renderer.start()
 
     query_count = 0
+    results_count = 0
+    results_total = 0
     while True:
         try:
             query_count += 1
             es_query = query.to_elasticsearch(last_timestamp)
             resp = es.search(index=query.index, body=es_query)
+            if query_count == 1:
+                results_total = resp['hits']['total']['value']
         except elasticsearch.ConnectionTimeout as ex:
             print(ex)
             yield renderer.error(ex, es_query)
@@ -371,7 +375,8 @@ def stream_logs(es, renderer, query: Query):
             return
 
         if query_count <= 1 and not resp['hits']['hits']:
-            yield renderer.no_results(es_query)
+            yield renderer.warning("Warning: No results matching query (Check details for query)",
+                                   es_query)
             time.sleep(1)
             continue
 
@@ -379,6 +384,14 @@ def stream_logs(es, renderer, query: Query):
         last_seen = {}
         i = 0
         for hit in resp['hits']['hits']:
+            results_count += 1
+            if query.max_results != "all" and results_count > query.max_results:
+                msg = f"""Warning: More than {query.max_results} results (of {results_total} total),
+use &max_results=N or &max_results=all to see more results."""
+                yield renderer.warning(msg, es_query)
+                yield renderer.end()
+                return
+
             i += 1
             source = hit['_source']
             _id = hit['_id']

@@ -35,6 +35,10 @@ class Query:
         self.to_timestamp = kwargs.pop("to", "now")
         self.interval = kwargs.pop("interval", "auto")
 
+        self.max_results = kwargs.pop("max_results", 5000)
+        if self.max_results != "all":
+            self.max_results = int(self.max_results)
+
         self.query_string = kwargs.pop("q", None)
 
         fields = kwargs.pop("fields", None)
@@ -86,6 +90,7 @@ class Query:
         query = {
             "size": num_results,
             "sort": [{"@timestamp":{"order": "asc"}}],
+            "track_total_hits": True,
             "query": {
                 "bool": {
                     "must": [*required_filters, timerange],

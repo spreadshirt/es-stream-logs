@@ -18,7 +18,7 @@ class JSONRenderer:
             self.is_first = False
         return prefix + json.dumps(source)
 
-    def no_results(self, es_query):
+    def warning(self, msg, es_query):
         return ""
 
     def error(self, ex, es_query):

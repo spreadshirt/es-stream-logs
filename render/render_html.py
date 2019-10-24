@@ -153,10 +153,9 @@ class HTMLRenderer:
 </body>
 </html>"""
 
-    def no_results(self, es_query):
-        """ Render no results. """
+    def warning(self, msg, es_query):
+        """ Render warning. """
 
-        msg = "Warning: No results matching query (Check details for query)"
         return self.__notice("warning", es_query, msg)
 
     def error(self, ex, es_query):
