@@ -8,6 +8,7 @@ query than Kibana, at least for ad-hoc queries.
 """
 
 from datetime import datetime
+import json
 import os
 import sys
 import time
@@ -298,6 +299,21 @@ def serve_aggregation():
 
     query = from_request_args(CONFIG, request.args)
     return aggregation(es_client, query)
+
+@APP.route('/raw')
+def serve_raw():
+    """ Serve raw query result from elasticsearch. """
+
+    es_client, resp = es_client_from(request)
+    if resp:
+        return resp
+
+    query = from_request_args(CONFIG, request.args)
+
+    es_query = query.to_elasticsearch(query.from_timestamp)
+    resp = es_client.search(index=query.index, body=es_query)
+
+    return Response(json.dumps(resp), content_type="application/json")
 
 def parse_doc_timestamp(timestamp: str):
     """ Parse the timestamp of an elasticsearch document. """
