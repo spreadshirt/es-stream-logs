@@ -282,7 +282,7 @@ def aggregation(es, query: Query):
         to_ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime((bucket['key']+interval_s*1000) / 1000))
         bucket_logs_url = logs_url + f"&from={from_ts}&to={to_ts}"
         img += f"""<g>
-    <a target="_parent" xlink:href="{escape(bucket_logs_url)}">
+    <a target="_parent" alt="Logs from {from_ts} to {to_ts}" xlink:href="{escape(bucket_logs_url)}">
     <rect width="{bucket_width}%" height="{height}%" y="{100-height}%" x="{pos_x}%"></rect>
     </a>
     <text y="75%" x="{pos_x}%">{key}

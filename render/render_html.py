@@ -36,7 +36,8 @@ class HTMLRenderer:
 </section>
 
 <div id="histogram_container">
-<object id="histogram" type="image/svg+xml" data=""" + '"' + aggregation_url + '"' + """></object>
+<object id="histogram" type="image/svg+xml" alt="Visualization of log entries"
+    data=""" + '"' + aggregation_url + '"' + """></object>
 </div>
 
 <script src="/static/enhance.js" defer async></script>
