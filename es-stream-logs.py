@@ -409,14 +409,18 @@ use &max_results=N or &max_results=all to see more results."""
             if isinstance(last_timestamp, str):
                 last_timestamp = timestamp
             else:
-                last_timestamp = max(timestamp, last_timestamp)
+                if query.sort == "asc":
+                    last_timestamp = max(timestamp, last_timestamp)
+                else: # desc
+                    last_timestamp = min(timestamp, last_timestamp)
 
             if query.fields:
                 source = filter_dict(source, query.fields)
             yield renderer.result(hit, source)
+
         seen = last_seen
 
-        if query.to_timestamp != 'now' and all_hits_seen:
+        if (query.sort == "desc" or query.to_timestamp != 'now') and all_hits_seen:
             yield renderer.end()
             return
 

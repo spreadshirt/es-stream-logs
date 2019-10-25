@@ -109,9 +109,27 @@ class HTMLRenderer:
 </span>
 """
 
-        res += f"""\n<span class="time">
+        res += """\n<span class="meta">"""
+
+        res += f"""
     <input type="text" name="from" value="{escape(self.query.from_timestamp)}" />
     <input type="text" name="to" value="{escape(self.query.to_timestamp)}" />
+
+"""
+
+        res += """
+   <select name="sort" title="sort order">"""
+        for order in ["asc", "desc"]:
+            selected = ""
+            if order == self.query.sort:
+                selected = " selected"
+            res += f"""
+        <option value="{escape(order)}"{selected}>{escape(order)}</option>"""
+
+        res += """
+    </select>"""
+
+        res += """
 </span>\n\n"""
 
         res += """<input type="submit" value="Update" />\n"""

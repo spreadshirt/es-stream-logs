@@ -39,6 +39,8 @@ class Query:
         if self.max_results != "all":
             self.max_results = int(self.max_results)
 
+        self.sort = kwargs.pop("sort", "asc")
+
         self.query_string = kwargs.pop("q", None)
 
         fields = kwargs.pop("fields", None)
@@ -87,9 +89,11 @@ class Query:
                 required_filters.extend(filters)
 
         timerange = {"range": {"@timestamp": {"gte": from_timestamp, "lt": self.to_timestamp}}}
+        if self.sort == "desc" and self.from_timestamp != from_timestamp:
+            timerange = {"range": {"@timestamp": {"gte": self.from_timestamp, "lt": from_timestamp}}}
         query = {
             "size": num_results,
-            "sort": [{"@timestamp":{"order": "asc"}}],
+            "sort": [{"@timestamp":{"order": self.sort}}],
             "track_total_hits": True,
             "query": {
                 "bool": {

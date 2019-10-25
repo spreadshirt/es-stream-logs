@@ -2,10 +2,6 @@ body {
   font-family: monospace;
 }
 
-#query .time {
-    float: right;
-}
-
 #query .exclude label {
     text-decoration: line-through;
 }
