@@ -278,7 +278,9 @@ def aggregation(es, query: Query):
         key = bucket['key_as_string']
         height = int((count / max_count) * 100)
         pos_x = scale.map(bucket['key'])
-        bucket_logs_url = logs_url + f"&from={bucket['key']}&to={bucket['key']+interval_s*1000}"
+        from_ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(bucket['key'] / 1000))
+        to_ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime((bucket['key']+interval_s*1000) / 1000))
+        bucket_logs_url = logs_url + f"&from={from_ts}&to={to_ts}"
         img += f"""<g>
     <a target="_parent" xlink:href="{escape(bucket_logs_url)}">
     <rect width="{bucket_width}%" height="{height}%" y="{100-height}%" x="{pos_x}%"></rect>
