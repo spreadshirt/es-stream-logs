@@ -298,7 +298,7 @@ def aggregation(es, query: Query):
 
             label = "\n".join([f"{sub_bucket['key']}: {sub_bucket['doc_count']}" for sub_bucket in sub_buckets])
             img += f"""</a>
-    <text y="75%" x="{pos_x}%">{key}
+    <text y="50%" x="{pos_x}%">{key}
 {label}</text>
 </g>
 """
@@ -307,7 +307,7 @@ def aggregation(es, query: Query):
     <a target="_parent" alt="Logs from {from_ts} to {to_ts}" xlink:href="{escape(bucket_logs_url)}">
     <rect fill="#00b2a5" stroke="#00b2a5" width="{bucket_width}%" height="{height}%" y="{100-height}%" x="{pos_x}%"></rect>
     </a>
-    <text y="75%" x="{pos_x}%">{key}
+    <text y="50%" x="{pos_x}%">{key}
 (count: {count})</text>
 </g>
 """
