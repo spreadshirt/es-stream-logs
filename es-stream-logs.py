@@ -63,7 +63,19 @@ def index_route():
 
 Loads (much) faster than Kibana, queries can be generated easily.</em>
 
-GET /     - documentation
+"""
+
+    html += """<h3>Examples:</h3><ul>"""
+    for query in CONFIG.queries:
+        html += f"""<li><a href="{escape(query)}">{escape(query)}</a></li>"""
+    html += "</ul>"
+
+
+    html += """GET /     - documentation
+
+GET /raw  - get raw search response from elasticsearch (parameters same as for /logs)
+
+GET /aggregation.svg - get rendered histogram (parameters same as for /logs)
 
 GET /logs - stream logs from elasticsearch
 
@@ -113,14 +125,6 @@ GET /logs - stream logs from elasticsearch
 
     - <strong>fmt</strong>: "html" or "json"
       defaults to "html", "json" outputs one log entry per line as a json object</pre>"""
-
-    html += """<h3>Examples:</h3>
-
-  <ul>
-"""
-    for query in CONFIG.queries:
-        html += f"""    <li><a href="{escape(query)}">{escape(query)}</a></li>\n"""
-    html += "</ul>"
 
     html += """</body>
 </html>"""
