@@ -10,6 +10,7 @@ query than Kibana, at least for ad-hoc queries.
 from datetime import datetime
 import json
 import os
+import random
 import sys
 import time
 
@@ -244,10 +245,8 @@ def aggregation(es, query: Query):
     }
 
     rect {
-        fill: #00b2a5;
         fill-opacity: 0.5;
         stroke-width: 1px;
-        stroke: #00b2a5;
     }
 
     g text {
@@ -273,6 +272,7 @@ def aggregation(es, query: Query):
 
     bucket_width = scale.factor * interval_s * 1000
 
+    color_mapper = ColorMapper()
     for bucket in num_results_buckets:
         count = bucket['doc_count']
         key = bucket['key_as_string']
@@ -281,9 +281,31 @@ def aggregation(es, query: Query):
         from_ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(bucket['key'] / 1000))
         to_ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime((bucket['key']+interval_s*1000) / 1000))
         bucket_logs_url = logs_url + f"&from={from_ts}&to={to_ts}"
-        img += f"""<g>
+        if query.aggregation_terms:
+            img += f"""<g>
     <a target="_parent" alt="Logs from {from_ts} to {to_ts}" xlink:href="{escape(bucket_logs_url)}">
-    <rect width="{bucket_width}%" height="{height}%" y="{100-height}%" x="{pos_x}%"></rect>
+"""
+            offset_y = 100
+            sub_buckets = bucket[query.aggregation_terms]['buckets']
+            sub_buckets.sort(key=lambda bucket: bucket['key'])
+            for sub_bucket in sub_buckets:
+                count = sub_bucket['doc_count']
+                height = max(0.25, int((count / max_count) * 100))
+                offset_y -= height
+                color = color_mapper.to_color(str(sub_bucket['key']))
+                img += f"""<rect fill="{color}" stroke="{color}" width="{bucket_width}%" height="{height}%" y="{offset_y}%" x="{pos_x}%"></rect>
+"""
+
+            label = "\n".join([f"{sub_bucket['key']}: {sub_bucket['doc_count']}" for sub_bucket in sub_buckets])
+            img += f"""</a>
+    <text y="75%" x="{pos_x}%">{key}
+{label}</text>
+</g>
+"""
+        else:
+            img += f"""<g>
+    <a target="_parent" alt="Logs from {from_ts} to {to_ts}" xlink:href="{escape(bucket_logs_url)}">
+    <rect fill="#00b2a5" stroke="#00b2a5" width="{bucket_width}%" height="{height}%" y="{100-height}%" x="{pos_x}%"></rect>
     </a>
     <text y="75%" x="{pos_x}%">{key}
 (count: {count})</text>
@@ -294,6 +316,36 @@ def aggregation(es, query: Query):
 
     #return Response(json.dumps(resp), content_type="application/json")
     return Response(img, content_type="image/svg+xml")
+
+class ColorMapper():
+    """ Maps values to colors, consistently. """
+
+    def __init__(self):
+        self.map = {}
+        self.static_map = {
+            "2xx": "green",
+            "3xx": "lightgreen",
+            "4xx": "yellow",
+            "5xx": "red",
+            "info": "green",
+            "warn": "yellow",
+            "warning": "yellow",
+            "error": "red",
+        }
+
+    def to_color(self, value: str):
+        """ Maps the given value to a color. """
+
+        if value.lower() in self.static_map:
+            return self.static_map[value.lower()]
+
+        if value not in self.map:
+            rnd = random.Random(value)
+            random_color = f"hsl({rnd.randint(0, 360)}, 90%, 50%)"
+            self.map[value] = random_color
+
+        return self.map[value]
+
 
 @APP.route('/aggregation.svg')
 def serve_aggregation():

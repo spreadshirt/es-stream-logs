@@ -33,7 +33,10 @@ class Query:
 
         self.from_timestamp = kwargs.pop("from", "now-5m")
         self.to_timestamp = kwargs.pop("to", "now")
+
         self.interval = kwargs.pop("interval", "auto")
+        self.aggregation_terms = kwargs.pop("aggregation_terms", None)
+        self.aggregation_size = int(kwargs.pop("aggregation_size", 5))
 
         self.max_results = kwargs.pop("max_results", 5000)
         if self.max_results != "all":
@@ -106,16 +109,30 @@ class Query:
 
     def aggregation(self, name, interval):
         """ Return (date_histogram) aggregation query. """
-        return {
+        inner_aggs = {}
+        if self.aggregation_terms:
+            inner_aggs = {
+                "aggs": {
+                    self.aggregation_terms: {
+                        "terms": {
+                            "field": self.aggregation_terms,
+                            "size": self.aggregation_size,
+                            }
+                        }
+                    }
+                }
+        aggregation = {
             name: {
                 "date_histogram": {
                     "field": "@timestamp",
                     "interval": interval,
                     "time_zone": "UTC",
-                    "min_doc_count": 0
-                }
+                    "min_doc_count": 1,
+                },
+                **inner_aggs,
             }
         }
+        return aggregation
 
     def as_url(self, base_url):
         """ Render query as url. """
@@ -129,6 +146,9 @@ class Query:
                   ('to', self.to_timestamp),
                   ('interval', self.interval),
                  ] + list(self.args.items())
+        if self.aggregation_terms:
+            params += [('aggregation_terms', self.aggregation_terms),
+                       ('aggregation_size', str(self.aggregation_size))]
         if self.query_string:
             params += [("q", self.query_string)]
         return "&".join(map(lambda item: item[0] + "=" + item[1], params))
