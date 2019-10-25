@@ -386,13 +386,6 @@ def stream_logs(es, renderer, query: Query):
         last_seen = {}
         i = 0
         for hit in resp['hits']['hits']:
-            results_count += 1
-            if query.max_results != "all" and results_count > query.max_results:
-                msg = f"""Warning: More than {query.max_results} results (of {results_total} total),
-use &max_results=N or &max_results=all to see more results."""
-                yield renderer.warning(msg, es_query)
-                yield renderer.end()
-                return
 
             i += 1
             source = hit['_source']
@@ -402,8 +395,15 @@ use &max_results=N or &max_results=all to see more results."""
                 continue
 
             all_hits_seen = False
-
             yield "\n"
+
+            results_count += 1
+            if query.max_results != "all" and results_count > query.max_results:
+                msg = f"""Warning: More than {query.max_results} results (of {results_total} total),
+use &max_results=N or &max_results=all to see more results."""
+                yield renderer.warning(msg, es_query)
+                yield renderer.end()
+                return
 
             timestamp = int(parse_doc_timestamp(hit['_source']['@timestamp']).timestamp()*1000)
             if isinstance(last_timestamp, str):
