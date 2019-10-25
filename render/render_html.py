@@ -93,6 +93,12 @@ class HTMLRenderer:
             fields = self.query.fields_original
             res += f"""<input type="text" name="fields" hidden value="{escape(fields)}" />\n\n"""
 
+        if self.query.aggregation_terms:
+            val = escape(self.query.aggregation_terms)
+            res += f"""<input type="text" name="aggregation_terms" hidden value="{val}" />\n"""
+            val = escape(self.query.aggregation_size)
+            res += f"""<input type="text" name="aggregation_size" hidden value="{val}" />\n\n"""
+
         res += f"""<span>
 <label for="q">q:</label>
 <input type="search" name="q" value="{escape(self.query.query_string or "")}"
