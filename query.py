@@ -1,5 +1,7 @@
 """ This module handles query parsing and translation to elasticsearch. """
 
+import urllib.parse
+
 from config import Config
 
 ONLY_ONCE_ARGUMENTS = ["from", "to", "dc", "index", "interval"]
@@ -151,7 +153,7 @@ class Query:
                        ('aggregation_size', str(self.aggregation_size))]
         if self.query_string:
             params += [("q", self.query_string)]
-        return "&".join(map(lambda item: item[0] + "=" + item[1], params))
+        return urllib.parse.urlencode(params)
 
 def collect_fields(cfg, fields, **kwargs):
     """ Collects fields by the given ones, or one of the default ones
