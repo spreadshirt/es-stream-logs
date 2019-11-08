@@ -49,7 +49,10 @@ class HTMLRenderer:
         start += "  <td></td>\n" # for expand placeholder
         for field in self.query.fields:
             field = escape(field)
-            start += f"  <td class=\"field\" data-class=\"field-{field}\">{field}</td>\n"
+            remove_field_link = self.query.as_url('/logs')
+            remove_field_link += "&fields=" + ",".join(filter(lambda f: f != field, self.query.fields))
+            remove_field_link = f"""<a class="filter" href="{remove_field_link}">✖</a>"""
+            start += f"  <td class=\"field\" data-class=\"field-{field}\">{field} {remove_field_link}</td>\n"
 
         start += """
 </tr>
