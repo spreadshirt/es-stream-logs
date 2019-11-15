@@ -292,7 +292,7 @@ def aggregation(es, query: Query):
                 count = sub_bucket['doc_count']
                 height = max(0.25, int((count / max_count) * 100))
                 offset_y -= height
-                color = color_mapper.to_color(str(sub_bucket['key']))
+                color = color_mapper.to_color(sub_bucket['key'])
                 img += f"""<rect fill="{color}" stroke="{color}" width="{bucket_width}%" height="{height}%" y="{offset_y}%" x="{pos_x}%"></rect>
 """
 
@@ -333,8 +333,22 @@ class ColorMapper():
             "error": "red",
         }
 
-    def to_color(self, value: str):
+    def to_color(self, value):
         """ Maps the given value to a color. """
+
+        if isinstance(value, int):
+            # special case for guessed http statuses
+            if 200 <= value < 300:
+                value = "2xx"
+            elif 300 <= value < 400:
+                value = "3xx"
+            elif 400 <= value < 500:
+                value = "4xx"
+            elif 500 <= value < 600:
+                value = "5xx"
+
+        if not isinstance(value, str):
+            value = str(value)
 
         if value.lower() in self.static_map:
             return self.static_map[value.lower()]
