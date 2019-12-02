@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -eu
+
+if [ ! -d "venv" ]; then
+	python3 -m venv venv
+fi
+
+./venv/bin/python3 -m pip install -r requirements.txt
+
+TZ=UTC FLASK_DEBUG=1 ./venv/bin/python3 es-stream-logs.py
