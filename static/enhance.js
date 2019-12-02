@@ -51,6 +51,16 @@ for (let i = 0; i < queryFilters.length; i++) {
 			query.submit();
 		}
 	}, "🗑");
+    removeFilterButton.addEventListener("mouseenter", function(e) {
+        queryFilter.style.backgroundColor="rgba(255, 0, 0, 0.7)";
+        queryFilter.style.textDecoration="line-through";
+    }, false);
+
+    removeFilterButton.addEventListener("mouseout", function(e) {
+        queryFilter.style.backgroundColor="transparent";
+        queryFilter.style.textDecoration="initial";
+    }, false);
+
 	queryFilter.appendChild(removeFilterButton);
 }
 
