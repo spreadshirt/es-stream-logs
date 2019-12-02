@@ -6,6 +6,10 @@ body {
     text-decoration: line-through;
 }
 
+#query .field-filter {
+	margin-right: 1.5em;
+}
+
 #query .field-filter .remove-filter {
     visibility: hidden;
     font-size: larger;
