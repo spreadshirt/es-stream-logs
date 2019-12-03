@@ -7,7 +7,9 @@ body {
 }
 
 #query .field-filter {
-	margin-right: 1.5em;
+    display: inline-block;
+    border-radius: 5px;
+    padding: 0 .5em;
 }
 
 #query .field-filter .remove-filter {
