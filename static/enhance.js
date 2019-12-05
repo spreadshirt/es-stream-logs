@@ -77,7 +77,7 @@ document.body.addEventListener('click', function(ev) {
 
     if (ev.target.classList.contains("filter")) {
         let key = ev.target.parentElement.dataset['field'];
-        let value = ev.target.parentElement.firstChild.textContent;
+        let value = ev.target.parentElement.firstElementChild.textContent;
         addFilter(key, value, ev.target.classList.contains("filter-exclude"));
         return;
     }
@@ -88,7 +88,7 @@ function collectFieldStats(field) {
     var total = 0;
     window.stats = {};
     for (var i = 0; i < values.length; i++) {
-        var value = values[i].firstChild.textContent;
+        var value = values[i].firstElementChild.textContent;
         stats[value] = (stats[value] || 0) + 1;
     };
     var top10 = Object.entries(stats).sort(([val1, cnt1], [val2, cnt2]) => cnt2 - cnt1).slice(0, 10);

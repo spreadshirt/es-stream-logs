@@ -6,6 +6,8 @@ import string
 import elasticsearch
 from flask import escape
 
+from jinja2 import Template
+
 from config import Config
 from query import Query
 
@@ -20,24 +22,75 @@ class HTMLRenderer:
         """ Render content at the "start", e.g. html head, table head, ... """
 
         aggregation_url = self.query.as_url('/aggregation.svg')
-        start = """<!doctype html>
+        template = Template(r"""
+<!doctype html>
 <html>
 <head>
     <link rel="stylesheet" href="/static/pretty.css" />
 </head>
 <body>
-"""
 
-        start += self.render_query()
+{% block query_form %}
+    <form id="query" method="GET" action="/logs" autocomplete="off">
+        <select name="dc" title="datacenter">
+    {% for datacenter, selected in datacenters.items() %}
+            <option value="{{ datacenter | e }}" {% if selected %}selected{% endif %}>{{ datacenter | e }}</option>
+    {% endfor %}
+        </select>
 
-        start += """
+        <input type="text" name="index" title="elasticsearch index" list="indices" value="{{ query.index | e }}" autocomplete="on" />
+        <datalist id="indices">
+    {% for index in indices %}
+            <option value="{{ index | e }}">{{ index | e }}</option>
+    {% endfor %}
+        </datalist>
+
+    {% if query.fields_original %}
+        <input type="text" name="fields" hidden value="{{ query.fields_original | e }}" />
+    {% endif %}
+
+    {% if agg_terms %}
+        <input type="text" name="aggregation_terms" hidden value="{{ query.aggregation_terms | e }}" />
+        <input type="text" name="aggregation_size" hidden value="{{ query.aggregation_size | e }}" />
+    {% endif %}
+
+        <span>
+            <label for="q">q:</label>
+            <input type="search" name="q" value="{{ query.query_string or "" | e}}" placeholder="query string query" />
+        </span>
+
+    {% for field,value in query.args.items() %}
+    {% if field.startswith('-') %}
+        <span class="field-filter excluded">
+    {% else %}
+        <span class="field-filter">
+    {% endif %}
+            <label for="{{ field | e }}">{{ field | e }}:</label>
+            <input type="text" name="{{ field | e }}" value="{{ value | e }}" />
+        </span>
+    {% endfor %}
+
+        <span class="meta">
+            <input type="text" name="from" value="{{ query.from_timestamp | e }}" />
+            <input type="text" name="to" value="{{ query.to_timestamp | e }}" />
+
+            <select name="sort" title="sort order">
+    {% for sort_order, selected in sort_orders.items() %}
+                <option value="{{ sort_order | e }}" {% if selected %}selected{% endif %}>{{ sort_order | e }}</option>
+    {% endfor %}
+            </select>
+        </span>
+
+        <input type="submit" value="Update" />
+    </form>
+{% endblock query_form %}
+
 <section class="stats">
     <p><span id="stats-num-hits">0 results</span></p>
 </section>
 
 <div id="histogram_container">
-<object id="histogram" type="image/svg+xml" alt="Visualization of log entries"
-    data=""" + '"' + aggregation_url + '"' + """></object>
+<object id="histogram" type="image/svg+xml" alt="Visualization of log entries" data="{{ aggregation_url }}"></object>
 </div>
 
 <script src="/static/enhance.js" defer async></script>
@@ -45,22 +98,30 @@ class HTMLRenderer:
 <table class="results">
 <thead>
 <tr>
-"""
-        start += "  <td></td>\n" # for expand placeholder
-        for field in self.query.fields:
-            field = escape(field)
-            remove_field_link = self.query.as_url('/logs')
-            remove_field_link += "&fields=" + ",".join(filter(lambda f: f != field, self.query.fields))
-            remove_field_link = f"""<a class="filter" href="{remove_field_link}">✖</a>"""
-            start += f"  <td class=\"field\" data-class=\"field-{field}\">{field} {remove_field_link}</td>\n"
-
-        start += """
+    <td></td>
+{% for field, remove_link in fields.items() %}
+    <td class="field" data-class="field-{{ field }}">{{ field }} <a class="filter" href="{{ remove_link }}">✖</a></td>
+{% endfor %}
 </tr>
 </thead>
 
 <tbody>
-"""
-        return start
+""")
+        fields = {}
+        for field in self.query.fields:
+            escaped_field = escape(field)
+            remove_link = self.query.as_url('/logs') + "&fields=" + ",".join(filter(lambda f: f != field, self.query.fields))
+            fields[escaped_field] = remove_link
+
+        datacenters = {}
+        for datacenter in self.config.endpoints.keys():
+            datacenters[datacenter] = datacenter == self.query.datacenter
+
+        sort_orders = {}
+        for order in ["asc", "desc"]:
+            sort_orders[order] = order == self.query.sort
+
+        return template.render(aggregation_url=aggregation_url, fields=fields, datacenters=datacenters, query=self.query, indices=self.config.indices, sort_orders=sort_orders)
 
     def num_results(self, results_total, took_ms):
         """ Render info about number of results. """
@@ -70,92 +131,13 @@ class HTMLRenderer:
     data-took-ms="{took_ms}">
 </tr>"""
 
-    def render_query(self):
-        """ Render query params and things. """
-
-        res = """<form id="query" method="GET" action="/logs" autocomplete="off">\n"""
-
-        res += """<select name="dc" title="datacenter">"""
-        for datacenter in self.config.endpoints.keys():
-            selected = ""
-            if datacenter == self.query.datacenter:
-                selected = " selected"
-            res += f"""
-    <option value="{datacenter}"{selected}>{datacenter}</option>"""
-        res += """\n</select>\n\n"""
-
-        res += f"""<input type="text" name="index" title="elasticsearch index" list="indices"
-    value="{escape(self.query.index)}" autocomplete="on" />
-"""
-        res += """<datalist id="indices">"""
-        for index in self.config.indices:
-            res += f"""    <option value="{escape(index)}">{escape(index)}</option>\n"""
-        res += """</datalist>\n\n"""
-
-        if self.query.fields_original:
-            fields = self.query.fields_original
-            res += f"""<input type="text" name="fields" hidden value="{escape(fields)}" />\n\n"""
-
-        if self.query.aggregation_terms:
-            val = escape(self.query.aggregation_terms)
-            res += f"""<input type="text" name="aggregation_terms" hidden value="{val}" />\n"""
-            val = escape(self.query.aggregation_size)
-            res += f"""<input type="text" name="aggregation_size" hidden value="{val}" />\n\n"""
-
-        res += f"""<span>
-<label for="q">q:</label>
-<input type="search" name="q" value="{escape(self.query.query_string or "")}"
-    placeholder="query string query" />
-</span>
-"""
-
-        for field, value in self.query.args.items():
-            classes = "field-filter"
-            if field.startswith("-"):
-                classes += " exclude"
-            res += f"""<span class="{classes}">
-    <label for="{escape(field)}">{escape(field)}:</label>
-    <input type="text" name="{escape(field)}" value="{escape(value)}" />
-</span>
-"""
-
-        res += """\n<span class="meta">"""
-
-        res += f"""
-    <input type="text" name="from" value="{escape(self.query.from_timestamp)}" />
-    <input type="text" name="to" value="{escape(self.query.to_timestamp)}" />
-
-"""
-
-        res += """
-   <select name="sort" title="sort order">"""
-        for order in ["asc", "desc"]:
-            selected = ""
-            if order == self.query.sort:
-                selected = " selected"
-            res += f"""
-        <option value="{escape(order)}"{selected}>{escape(order)}</option>"""
-
-        res += """
-    </select>"""
-
-        res += """
-</span>\n\n"""
-
-        res += """<input type="submit" value="Update" />\n"""
-
-        res += """</form>\n\n"""
-        return res
-
     def result(self, hit, source):
         """ Renders a single result. """
 
-        result = f"<tr class=\"row\" data-source=\"{escape(json.dumps(hit['_source']))}\">\n"
-        result += "<td class=\"toggle-expand\">+</td>"
+        fields = {}
         for field in self.query.fields:
-            has_val = field in source
             val = escape(source.get(field, ''))
-            classes = [f"field-{escape(field)}"]
+
             if field == "_source":
                 source = json.dumps(hit['_source'])
                 val = f"<div class=\"source-flattened\">{escape(source)}</div>"
@@ -165,22 +147,26 @@ class HTMLRenderer:
                                               dc=self.query.datacenter, index=self.query.index,
                                               **hit['_source'])
 
-            result += f"    <td data-field=\"{escape(field)}\" class=\"{' '.join(classes)}\">"
-            result += "<div class=\"field-container\">"
-
-            if not has_val:
+            if not field in source:
                 val = '-'
             elif source.get(field, '') is None:
                 val = 'null'
-            result += f"{val}"
+            fields[field] = val
 
-            result += "</div>"
-            result += "<span class=\"filter filter-include\" title=\"Filter for results matching value\">🔎</span>"
-            result += "<span class=\"filter filter-exclude\" title=\"Exclude results matching value\">🗑</span>"
-            result += "</td>\n"
-        result += "</tr>\n"
-        result += f"<tr class=\"source source-hidden\"><td colspan=\"{1 + len(self.query.fields)}\"></td></tr>\n"
-        return result
+        template = Template(r"""
+<tr class="row" data-source="{{ source_json | e }}">
+    <td class="toggle-expand">+</td>
+{% for field, val in fields.items() %}
+    <td data-field="{{ field | e }}" class="field-{{ field | e }}">
+        <div class="field-container">{{ val }}</div>
+        <span class="filter filter-include" title="Filter for results matching value">🔎</span>
+        <span class="filter filter-exclude" title="Exclude results matching value">🗑</span>
+    </td>
+{% endfor %}
+</tr>
+<tr class="source source-hidden"><td colspan="{{ 1 + len_fields }}"></td></tr>
+""")
+        return template.render(source_json=json.dumps(hit['_source']), len_fields=len(self.query.fields), fields=fields)
 
     def end(self):
         """ Renders end of results. """
@@ -200,19 +186,18 @@ class HTMLRenderer:
         if isinstance(ex, elasticsearch.ConnectionTimeout):
             msg = f"Warning: Connection timeout: {ex} (Check details for query)"
             return self.__notice("warning", es_query, msg)
-
-        msg = "ERROR!: " + str(ex)
-        return self.__notice("error", es_query, msg)
+        else:
+            msg = f"ERROR!: {str(ex)}"
+            return self.__notice("error", es_query, msg)
 
     def __notice(self, class_, es_query, msg):
-        width = len(self.query.fields)
-        row = f"<tr data-source=\"{escape(json.dumps(es_query))}\">\n"
-        row += "<td class=\"toggle-expand\">+</td> "
-        row += f"<td class=\"{class_}\" colspan=\"{width}\">{escape(msg)}</td>"
-        row += "</tr>\n"
-
-        row += f"<tr class=\"source source-hidden\"><td colspan=\"{1 + width}\"></td></tr>\n"
-        return row
+        template = Template(r"""
+<tr data-source="{{ es_query_json | e }}">
+    <td class="toggle-expand">+</td>
+    <td class="{{ class_ }}" colspan="{{ width }}">{{ msg | e }}</td>
+<tr class="source source-hidden"><td colspan="{{ 1 + width }}"></td></tr>
+""")
+        return template.render(es_query_json=json.dumps(es_query), class_=class_, width=len(self.query.fields), msg=msg)
 
 class FieldFormatter(string.Formatter):
     """ Custom formatter test gets nested dot-separated fields from an object. """

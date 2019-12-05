@@ -19,6 +19,8 @@ import elasticsearch
 
 from flask import Flask, Response, abort, escape, request
 
+from jinja2 import Template
+
 # project internal modules
 import config
 from query import Query, from_request_args
@@ -39,7 +41,7 @@ def favicon_route():
 def index_route():
     """ GET / """
 
-    html = f"""
+    index = Template(r"""
 <!doctype html>
 <html>
 <head>
@@ -47,13 +49,13 @@ def index_route():
     <title>Stream logs!</title>
 
     <style>
-    h1, h2, h3 {{
+    h1, h2, h3 {
         margin: 0;
-    }}
+    }
 
-    pre {{
+    pre {
         white-space: pre-wrap;
-    }}
+    }
     </style>
 </head>
 
@@ -64,15 +66,11 @@ def index_route():
 
 Loads (much) faster than Kibana, queries can be generated easily.</em>
 
-"""
+    {% for query in queries -%}
+        <li><a href="{{ query | e }}">{{query | e}}</a></li>
+    {%- endfor %}
 
-    html += """<h3>Examples:</h3><ul>"""
-    for query in CONFIG.queries:
-        html += f"""<li><a href="{escape(query)}">{escape(query)}</a></li>"""
-    html += "</ul>"
-
-
-    html += """GET /     - documentation
+GET /     - documentation
 
 GET /raw  - get raw search response from elasticsearch (parameters same as for /logs)
 
@@ -125,12 +123,12 @@ GET /logs - stream logs from elasticsearch
         To add fields to the default ones, use `fields=,additional-field`.
 
     - <strong>fmt</strong>: "html" or "json"
-      defaults to "html", "json" outputs one log entry per line as a json object</pre>"""
+      defaults to "html", "json" outputs one log entry per line as a json object</pre>
 
-    html += """</body>
-</html>"""
+</body>
+</html>""")
 
-    return html
+    return index.render(queries=CONFIG.queries)
 
 def nested_get(dct, keys):
     """ Gets keys recursively from dict, e.g. nested_get({test: inner: 42}, ["test", "inner"])
