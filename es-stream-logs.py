@@ -231,89 +231,87 @@ def aggregation(es, query: Query):
     query_params += [('from', query.from_timestamp), ('to', query.to_timestamp)]
     query_str = ", ".join([f"{item[0]}={item[1]}" for item in query_params])
 
-    img = f"""<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" class="chart" width="{width}" height="{height}"
-     xmlns:xlink="http://www.w3.org/1999/xlink">"""
-
-    img += """
-    <title id="title">Aggregation for query: """ + query_str + """</title>
-    <style>
-    svg {
-        font-family: monospace;
-    }
-
-    rect {
-        fill-opacity: 0.5;
-        stroke-width: 1px;
-    }
-
-    g text {
-        text-anchor: middle;
-        white-space: pre;
-
-        display: none;
-    }
-
-    g:hover text {
-        display: block;
-    }
-    </style>
-    """
-
     #num_hits = resp['hits']['total']['value']
     avg_count = 0
 
     if num_results_buckets:
         avg_count = int(total_count / len(num_results_buckets))
 
-    img += f"""<text x="10" y="14">{query_str + " | " if not is_internal else ''}count per {interval}: max: {max_count}, avg: {avg_count}</text>"""
-
     bucket_width = scale.factor * interval_s * 1000
+
+    buckets = []
 
     color_mapper = ColorMapper()
     for bucket in num_results_buckets:
         count = bucket['doc_count']
-        key = bucket['key_as_string']
-        height = int((count / max_count) * 100)
-        pos_x = scale.map(bucket['key'])
         from_ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(bucket['key'] / 1000))
         to_ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime((bucket['key']+interval_s*1000) / 1000))
-        bucket_logs_url = logs_url + f"&from={from_ts}&to={to_ts}"
+        bucket_data = {"count": count, "key": bucket['key_as_string'], "height": int((count / max_count) * 100), "pos_x": scale.map(bucket['key']), "from_ts": from_ts, "to_ts": to_ts, "logs_url": logs_url + f"&from={from_ts}&to={to_ts}"}
         if query.aggregation_terms:
-            img += f"""<g>
-    <a target="_parent" alt="Logs from {from_ts} to {to_ts}" xlink:href="{escape(bucket_logs_url)}">
-"""
             offset_y = 100
             sub_buckets = bucket[query.aggregation_terms]['buckets']
             sub_buckets.sort(key=lambda bucket: bucket['key'])
-            for sub_bucket in sub_buckets:
-                count = sub_bucket['doc_count']
-                height = max(0.25, int((count / max_count) * 100))
-                offset_y -= height
-                color = color_mapper.to_color(sub_bucket['key'])
-                img += f"""<rect fill="{color}" stroke="{color}" width="{bucket_width}%" height="{height}%" y="{offset_y}%" x="{pos_x}%"></rect>
-"""
+            bucket_data['sub_buckets'] = []
+            for idx, sub_bucket in sub_buckets.enumerate():
+                bucket_data['sub_buckets'].append({'count': sub_bucket['doc_count'], 'height': max(0.25, int((count / max_count) * 100)), 'offset_y': offset_y - (idx*height), 'color': color_mapper.to_color(sub_bucket['key'])})
+            bucket_data['label'] = "\n".join([f"{sub_bucket['key']}: {sub_bucket['doc_count']}" for sub_bucket in sub_buckets])
+        buckets.append(bucket_data)
 
-            label = "\n".join([f"{sub_bucket['key']}: {sub_bucket['doc_count']}" for sub_bucket in sub_buckets])
-            img += f"""</a>
-    <text y="50%" x="{pos_x}%">{key}
-{label}</text>
-</g>
-"""
-        else:
-            img += f"""<g>
-    <a target="_parent" alt="Logs from {from_ts} to {to_ts}" xlink:href="{escape(bucket_logs_url)}">
-    <rect fill="#00b2a5" stroke="#00b2a5" width="{bucket_width}%" height="{height}%" y="{100-height}%" x="{pos_x}%"></rect>
+    template = Template(r"""<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" class="chart" width="{{ width }}" height="{{ height }}" xmlns:xlink="http://www.w3.org/1999/xlink">
+
+<title id="title">Aggregation for query: {{ query_str }}</title>
+<style>
+svg {
+    font-family: monospace;
+}
+
+rect {
+    fill-opacity: 0.5;
+    stroke-width: 1px;
+}
+
+g text {
+    text-anchor: middle;
+    white-space: pre;
+
+    display: none;
+}
+
+g:hover text {
+    display: block;
+}
+</style>
+
+<text x="10" y="14">{{ query_str + " | " if not is_internal else '' }}count per {{ interval }}: max: {{ max_count }}, avg: {{ avg_count }}</text>
+
+{% for bucket in buckets %}
+{% if bucket.aggregation_terms %}
+<g>
+    <a target="_parent" alt="Logs from {{ bucket.from_ts }} to {{ bucket.to_ts }}" xlink:href="{{ bucket.logs_url | e }}">
+{% for sub_bucket in bucket.sub_buckets %}
+    <rect fill="{{ sub_bucket.color }}" stroke="{{ sub_bucket.color }}" width="{{ bucket_width }}%" height="{{ sub_bucket.height }}%" y="{{ sub_bucket.offset_y }}%" x="{{ bucket.pos_x }}%"></rect>
+{% endfor %}
+    <text y="50%" x="{{ bucket.pos_x }}%">{{ bucket.key }}
     </a>
-    <text y="50%" x="{pos_x}%">{key}
-(count: {count})</text>
+{{ bucket.label }}</text>
 </g>
-"""
+{% else %}
+<g>
+    <a target="_parent" alt="Logs from {{ bucket.from_ts }} to {{ bucket.to_ts }}" xlink:href="{{ bucket.logs_url | e }}">
+    <rect fill="#00b2a5" stroke="#00b2a5" width="{{ bucket_width }}%" height="{{ bucket.height }}%" y="{{ 100-bucket.height }}%" x="{{ bucket.pos_x }}%"></rect>
+    </a>
+    <text y="50%" x="{{ bucket.pos_x }}%">{{ bucket.key }}
+(count: {{ bucket.count }})</text>
+</g>
+{% endif %}
+{% endfor %}
 
-    img += "</svg>"
-
+</svg>
+""")
     #return Response(json.dumps(resp), content_type="application/json")
-    return Response(img, content_type="image/svg+xml")
+    return Response(template.render(width=width, height=height, query_str=query_str, is_internal=is_internal, interval=interval, max_count=max_count, avg_count=avg_count, bucket_width=bucket_width, buckets=buckets), content_type="image/svg+xml")
+
 
 class ColorMapper():
     """ Maps values to colors, consistently. """
