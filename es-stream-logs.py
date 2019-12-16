@@ -260,7 +260,7 @@ def aggregation(es, query: Query):
             sub_buckets = bucket[query.aggregation_terms]['buckets']
             sub_buckets.sort(key=lambda bucket: bucket['key'])
             bucket_data['sub_buckets'] = []
-            for idx, sub_bucket in sub_buckets.enumerate():
+            for idx, sub_bucket in enumerate(sub_buckets):
                 bucket_data['sub_buckets'].append({
                     'count': sub_bucket['doc_count'],
                     'height': max(0.25, int((count / max_count) * 100)),
