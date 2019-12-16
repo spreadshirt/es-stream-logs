@@ -246,14 +246,27 @@ def aggregation(es, query: Query):
         count = bucket['doc_count']
         from_ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(bucket['key'] / 1000))
         to_ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime((bucket['key']+interval_s*1000) / 1000))
-        bucket_data = {"count": count, "key": bucket['key_as_string'], "height": int((count / max_count) * 100), "pos_x": scale.map(bucket['key']), "from_ts": from_ts, "to_ts": to_ts, "logs_url": logs_url + f"&from={from_ts}&to={to_ts}"}
+        bucket_data = {
+            "count": count,
+            "key": bucket['key_as_string'],
+            "height": int((count / max_count) * 100),
+            "pos_x": scale.map(bucket['key']),
+            "from_ts": from_ts,
+            "to_ts": to_ts,
+            "logs_url": logs_url + f"&from={from_ts}&to={to_ts}"
+        }
         if query.aggregation_terms:
             offset_y = 100
             sub_buckets = bucket[query.aggregation_terms]['buckets']
             sub_buckets.sort(key=lambda bucket: bucket['key'])
             bucket_data['sub_buckets'] = []
             for idx, sub_bucket in sub_buckets.enumerate():
-                bucket_data['sub_buckets'].append({'count': sub_bucket['doc_count'], 'height': max(0.25, int((count / max_count) * 100)), 'offset_y': offset_y - (idx*height), 'color': color_mapper.to_color(sub_bucket['key'])})
+                bucket_data['sub_buckets'].append({
+                    'count': sub_bucket['doc_count'],
+                    'height': max(0.25, int((count / max_count) * 100)),
+                    'offset_y': offset_y - (idx*height),
+                    'color': color_mapper.to_color(sub_bucket['key'])
+                })
             bucket_data['label'] = "\n".join([f"{sub_bucket['key']}: {sub_bucket['doc_count']}" for sub_bucket in sub_buckets])
         buckets.append(bucket_data)
 
