@@ -253,19 +253,23 @@ def aggregation(es, query: Query):
             "pos_x": scale.map(bucket['key']),
             "from_ts": from_ts,
             "to_ts": to_ts,
-            "logs_url": logs_url + f"&from={from_ts}&to={to_ts}"
+            "logs_url": logs_url + f"&from={from_ts}&to={to_ts}",
+            "aggregation_terms": query.aggregation_terms,
         }
         if query.aggregation_terms:
             offset_y = 100
             sub_buckets = bucket[query.aggregation_terms]['buckets']
             sub_buckets.sort(key=lambda bucket: bucket['key'])
             bucket_data['sub_buckets'] = []
-            for idx, sub_bucket in enumerate(sub_buckets):
+            for sub_bucket in sub_buckets:
+                sub_count = sub_bucket['doc_count']
+                sub_height = max(0.25, int((sub_count / max_count) * 100))
+                offset_y -= sub_height
                 bucket_data['sub_buckets'].append({
-                    'count': sub_bucket['doc_count'],
-                    'height': max(0.25, int((count / max_count) * 100)),
-                    'offset_y': offset_y - (idx*height),
-                    'color': color_mapper.to_color(sub_bucket['key'])
+                    'count': sub_count,
+                    'height': sub_height,
+                    'offset_y': offset_y,
+                    'color': color_mapper.to_color(sub_bucket['key']),
                 })
             bucket_data['label'] = "\n".join([f"{sub_bucket['key']}: {sub_bucket['doc_count']}" for sub_bucket in sub_buckets])
         buckets.append(bucket_data)
@@ -305,8 +309,9 @@ g:hover text {
 {% for sub_bucket in bucket.sub_buckets %}
     <rect fill="{{ sub_bucket.color }}" stroke="{{ sub_bucket.color }}" width="{{ bucket_width }}%" height="{{ sub_bucket.height }}%" y="{{ sub_bucket.offset_y }}%" x="{{ bucket.pos_x }}%"></rect>
 {% endfor %}
-    <text y="50%" x="{{ bucket.pos_x }}%">{{ bucket.key }}
+    <text y="50%" x="{{ bucket.pos_x }}%">{{ bucket.key }}</text>
     </a>
+<text y="50%" x="{{ bucket.pos_x }}%">{{ bucket.key }}
 {{ bucket.label }}</text>
 </g>
 {% else %}
