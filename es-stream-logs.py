@@ -65,11 +65,9 @@ def index_route():
     <pre><em>Streams logs from elasticsearch, controllable via query parameters.
 
 Loads (much) faster than Kibana, queries can be generated easily.</em>
-
-    {% for query in queries -%}
+    <ul>{% for query in queries -%}
         <li><a href="{{ query | e }}">{{query | e}}</a></li>
-    {%- endfor %}
-
+    {%- endfor %}</ul>
 GET /     - documentation
 
 GET /raw  - get raw search response from elasticsearch (parameters same as for /logs)
