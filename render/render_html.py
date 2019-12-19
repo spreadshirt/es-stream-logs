@@ -49,7 +49,7 @@ class HTMLRenderer:
         <input type="text" name="fields" hidden value="{{ query.fields_original | e }}" />
     {% endif %}
 
-    {% if agg_terms %}
+    {% if query.aggregation_terms %}
         <input type="text" name="aggregation_terms" hidden value="{{ query.aggregation_terms | e }}" />
         <input type="text" name="aggregation_size" hidden value="{{ query.aggregation_size | e }}" />
     {% endif %}
