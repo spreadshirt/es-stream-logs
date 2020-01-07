@@ -7,7 +7,7 @@ See <http://localhost:3028> for docs and examples.
 
 ## Configuration
 
-See <./config.json> for examples of all of the following.
+See [config.json](./config.json) for examples of all of the following.
 
 - `default_endpoint`, `endpoints`, `indices`: set up elasticsearch
     endpoints and indices to display
