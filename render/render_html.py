@@ -212,4 +212,7 @@ class DotMap(dict):
     """ A tiny map that allows key access via ".key" syntax. """
 
     def __getattr__(self, attr):
-        return self.get(attr)
+        val = self.get(attr)
+        if isinstance(val, dict):
+            return DotMap(val)
+        return val
