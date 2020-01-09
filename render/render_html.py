@@ -146,15 +146,27 @@ class HTMLRenderer:
                 val = FieldFormatter().format(fmt, __query=self.query.as_params(),
                                               dc=self.query.datacenter, index=self.query.index,
                                               **hit['_source'])
-
             if not field in source:
                 val = '-'
             elif source.get(field, '') is None:
                 val = 'null'
             fields[field] = val
 
+        formatted_fields = {}
+        for field, fmt_str in self.config.field_format.items():
+            try:
+                val = nested_get(hit['_source'], field.split("."))
+                if val:
+                    fmt = self.config.field_format[field]
+                    val = FieldFormatter().format(fmt, __query=self.query.as_params(),
+                            dc=self.query.datacenter, index=self.query.index,
+                            **hit['_source'])
+                    formatted_fields[field] = val
+            except (IndexError, KeyError, ValueError):
+                pass
+
         template = Template(r"""
-<tr class="row" data-source="{{ source_json | e }}">
+<tr class="row" data-source="{{ source_json | e }}" data-formatted-fields="{{ formatted_fields | e }}">
     <td class="toggle-expand">+</td>
 {% for field, val in fields.items() %}
     <td data-field="{{ field | e }}" class="field-{{ field | e }}">
@@ -166,7 +178,8 @@ class HTMLRenderer:
 </tr>
 <tr class="source source-hidden"><td colspan="{{ 1 + len_fields }}"></td></tr>
 """)
-        return template.render(source_json=json.dumps(hit['_source']), len_fields=len(self.query.fields), fields=fields)
+        return template.render(source_json=json.dumps(hit['_source']), len_fields=len(self.query.fields),
+                fields=fields, formatted_fields=json.dumps(formatted_fields))
 
     def end(self):
         """ Renders end of results. """
@@ -198,6 +211,16 @@ class HTMLRenderer:
 <tr class="source source-hidden"><td colspan="{{ 1 + width }}"></td></tr>
 """)
         return template.render(es_query_json=json.dumps(es_query), class_=class_, width=len(self.query.fields), msg=msg)
+
+def nested_get(dct, keys):
+    """ Gets keys recursively from dict, e.g. nested_get({test: inner: 42}, ["test", "inner"])
+        would return the nested `42`. """
+    for key in keys:
+        if isinstance(dct, list):
+            dct = dct[int(key)]
+        else:
+            dct = dct[key]
+    return dct
 
 class FieldFormatter(string.Formatter):
     """ Custom formatter test gets nested dot-separated fields from an object. """

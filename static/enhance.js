@@ -110,11 +110,12 @@ function expandSource(element) {
     if (!isExpanded) {
         element.classList.add("expanded");
         var source = JSON.parse(element.parentElement.dataset['source']);
+        var formattedFields = JSON.parse(element.parentElement.dataset['formattedFields']);
         var container = makeElement("div", {"class": "source-details"});
         var toggleTable = makeElement("a", {"href": "#"}, "Table");
         toggleTable.addEventListener("click", function(ev) {
             container.removeChild(container.lastElementChild);
-            container.appendChild(renderSourceTable(source));
+            container.appendChild(renderSourceTable(source, formattedFields));
             ev.preventDefault();
         });
         var toggleJSON = makeElement("a", {"href": "#"}, "JSON");
@@ -126,7 +127,7 @@ function expandSource(element) {
         container.appendChild(toggleTable);
         container.appendChild(new Text(" "));
         container.appendChild(toggleJSON);
-        container.appendChild(renderSourceTable(source));
+        container.appendChild(renderSourceTable(source, formattedFields));
         sourceContainer.appendChild(container);
         sourceContainer.parentElement.classList.remove("source-hidden");
         element.textContent = "-";
@@ -142,7 +143,7 @@ function renderSourceJSON(source) {
     return makeElement("pre", {}, JSON.stringify(source, "", "  "));
 }
 
-function renderSourceTable(source) {
+function renderSourceTable(source, formattedFields) {
     let table = makeElement("table");
     let tbody = makeElement("tbody");
     Object.entries(flattenObject({}, "", source))
@@ -182,8 +183,15 @@ function renderSourceTable(source) {
 
             row.appendChild(buttons);
 
+            let valueEl = makeElement("pre", {}, (value === null ? "null" : value.toString()));
+
+            if (key in formattedFields) {
+                valueEl = makeElement("pre", {}, "");
+                valueEl.innerHTML = formattedFields[key];
+            }
+
             row.appendChild(makeElement("td", {}, key));
-            row.appendChild(makeElement("td", {}, makeElement("pre", {}, (value === null ? "null" : value.toString()))));
+            row.appendChild(makeElement("td", {}, valueEl));
             tbody.appendChild(row);
         })
     table.appendChild(tbody);
