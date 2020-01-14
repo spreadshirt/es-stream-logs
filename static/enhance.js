@@ -71,7 +71,7 @@ document.body.addEventListener('click', function(ev) {
     if (ev.target.classList.contains("filter")) {
         let key = ev.target.parentElement.dataset['field'];
         let value = ev.target.parentElement.firstElementChild.textContent;
-        addFilter(key, value, ev.target.classList.contains("filter-exclude"));
+        addFilter(key, value, ev.target.classList.contains("filter-exclude"), redirect = true);
         return;
     }
 });
@@ -153,25 +153,25 @@ function renderSourceTable(source, formattedFields) {
             let row = makeElement("tr");
 
             let buttons = makeElement("td");
-            buttons.appendChild(makeElement("span", {
+            buttons.appendChild(makeElement("a", {
                 "title": "Filter for results matching value",
                 "classList": "filter2 filter-include",
-                "onclick": function() { addFilter(key, value, false); },
+                "href": addFilter(key, value, false),
             }, "🔎"));
-            buttons.appendChild(makeElement("span", {
+            buttons.appendChild(makeElement("a", {
                 "title": "Exclude results matching value",
                 "classList": "filter2 filter-exclude",
-                "onclick": function() { addFilter(key, value, true); },
+                "href": addFilter(key, value, true),
             }, "🗑"));
-            buttons.appendChild(makeElement("span", {
+            buttons.appendChild(makeElement("a", {
                 "title": "Add field",
                 "classList": "filter2",
-                "onclick": function() { addField(key); },
+                "href": addField(key),
             }, "🗍"));
-            buttons.appendChild(makeElement("span", {
+            buttons.appendChild(makeElement("a", {
                 "title": "Require field to be present",
                 "classList": "filter2",
-                "onclick": function() { requireField(key); },
+                "href": requireField(key),
             }, "🞸"));
 
             row.appendChild(buttons);
@@ -215,13 +215,16 @@ function makeElement(tag, attrs, content) {
     return el;
 }
 
-function addFilter(key, value, exclude) {
+function addFilter(key, value, exclude, redirect = false) {
     if (exclude) {
         key = "-" + key;
     }
     var u = new URL(location.href);
     u.searchParams.append(key, value);
-    location.href = u.href;
+    if (redirect) {
+        location.href = u.href;
+    }
+    return u.href;
 }
 
 function requireField(fieldName) {
@@ -231,7 +234,7 @@ function requireField(fieldName) {
     } else {
         u.search += "&" + fieldName;
     }
-    location.href = u.href;
+    return u.href
 }
 
 function addField(fieldName) {
@@ -241,5 +244,5 @@ function addField(fieldName) {
     } else {
         u.searchParams.append("fields", "," + fieldName);
     }
-    location.href = u.href;
+    return u.href;
 }
