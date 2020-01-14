@@ -140,14 +140,20 @@ class Query:
         """ Render query as url. """
         return base_url + '?' + self.as_params()
 
-    def as_params(self):
+    def as_params(self, with_param=None, without_param=None):
         """ Render query as query params. """
         params = [('dc', self.datacenter),
                   ('index', self.index),
                   ('from', self.from_timestamp),
                   ('to', self.to_timestamp),
                   ('interval', self.interval),
-                 ] + list(self.args.items())
+                 ]
+        args = list(self.args.items())
+        if with_param:
+            args += [with_param]
+        if without_param:
+            args.remove(without_param)
+        params += args
         if self.aggregation_terms:
             params += [('aggregation_terms', self.aggregation_terms),
                        ('aggregation_size', str(self.aggregation_size))]

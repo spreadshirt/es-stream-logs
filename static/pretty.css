@@ -16,6 +16,8 @@ body {
     visibility: hidden;
     font-size: larger;
     cursor: pointer;
+    color: black;
+    text-decoration: none;
 }
 
 #query:hover .field-filter .remove-filter {

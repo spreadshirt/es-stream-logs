@@ -67,6 +67,7 @@ class HTMLRenderer:
     {% endif %}
             <label for="{{ field | e }}">{{ field | e }}:</label>
             <input type="text" name="{{ field | e }}" value="{{ value | e }}" />
+            <a class="remove-filter" title="Remove filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value)) }}">🗑</a>
         </span>
     {% endfor %}
 

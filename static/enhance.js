@@ -43,14 +43,7 @@ var query = document.querySelector("#query");
 var queryFilters = document.querySelectorAll(".field-filter");
 for (let i = 0; i < queryFilters.length; i++) {
 	let queryFilter = queryFilters[i];
-	let removeFilterButton = makeElement("span", {
-		"title": "Remove filter",
-		"classList": "remove-filter",
-		"onclick": function(ev) {
-			queryFilter.parentElement.removeChild(queryFilter);
-			query.submit();
-		}
-	}, "🗑");
+	let removeFilterButton = queryFilter.querySelector(".remove-filter");
     removeFilterButton.addEventListener("mouseenter", function(e) {
         queryFilter.style.backgroundColor="lightgray";
         queryFilter.style.textDecoration="line-through";
