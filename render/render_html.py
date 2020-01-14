@@ -59,12 +59,8 @@ class HTMLRenderer:
             <input type="search" name="q" value="{{ (query.query_string or "") | e}}" placeholder="query string query" />
         </span>
 
-    {% for field,value in query.args.items() %}
-    {% if field.startswith('-') %}
-        <span class="field-filter excluded">
-    {% else %}
-        <span class="field-filter">
-    {% endif %}
+    {% for field, value in query.args.items() %}
+        <span class="field-filter{% if field.startswith('-') %} excluded{% endif %}">
             <label for="{{ field | e }}">{{ field | e }}:</label>
             <input type="text" name="{{ field | e }}" value="{{ value | e }}" />
             <a class="remove-filter" title="Remove filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value)) }}">🗑</a>
