@@ -63,7 +63,12 @@ class HTMLRenderer:
         <span class="field-filter{% if field.startswith('-') %} excluded{% endif %}{% if field.startswith(':') %} disabled{% endif %}">
             <label for="{{ field | e }}">{{ field | e }}:</label>
             <input type="text" name="{{ field | e }}" value="{{ value | e }}" />
-            <a class="remove-filter" title="Remove filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value)) }}">🗑</a>
+            {% if field.startswith(':') %}
+                <a class="hide" title="Disable filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value), with_param=(field[1:],value)) }}">👁</a>
+            {% else %}
+                <a class="hide" title="Enable filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value), with_param=(':'+field,value)) }}">👁</a>
+            {% endif %}
+            <a class="hide remove-filter" title="Remove filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value)) }}">🗑</a>
         </span>
     {% endfor %}
 

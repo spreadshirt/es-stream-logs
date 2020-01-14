@@ -16,15 +16,14 @@ body {
     opacity: 0.4;
 }
 
-#query .field-filter .remove-filter {
+#query .field-filter .hide {
     visibility: hidden;
     font-size: larger;
-    cursor: pointer;
     color: black;
     text-decoration: none;
 }
 
-#query:hover .field-filter .remove-filter {
+#query:hover .field-filter .hide {
 	visibility: visible;
 }
 
