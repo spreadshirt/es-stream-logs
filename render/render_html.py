@@ -60,7 +60,7 @@ class HTMLRenderer:
         </span>
 
     {% for field, value in query.args.items() %}
-        <span class="field-filter{% if field.startswith('-') %} excluded{% endif %}">
+        <span class="field-filter{% if field.startswith('-') %} excluded{% endif %}{% if field.startswith(':') %} disabled{% endif %}">
             <label for="{{ field | e }}">{{ field | e }}:</label>
             <input type="text" name="{{ field | e }}" value="{{ value | e }}" />
             <a class="remove-filter" title="Remove filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value)) }}">🗑</a>

@@ -12,6 +12,10 @@ body {
     padding: 0 .5em;
 }
 
+#query .field-filter.disabled * {
+    opacity: 0.4;
+}
+
 #query .field-filter .remove-filter {
     visibility: hidden;
     font-size: larger;

@@ -66,9 +66,12 @@ class Query:
         compare_ops = {"<": "lt", ">": "gt"}
         for key, val in self.args.items():
             exclude = False
-            if key.startswith("-"):
+            if key.startswith("-"): # exclude results of this filter
                 exclude = True
                 key = key[1:]
+
+            if key.startswith(":"): # deactivate/ignore this filter (ui feature)
+                continue
 
             filters = []
             if val == "":
