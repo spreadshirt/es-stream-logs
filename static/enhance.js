@@ -76,6 +76,16 @@ document.body.addEventListener('click', function(ev) {
     }
 });
 
+document.body.addEventListener('mouseover', function(ev) {
+    if (ev.target.nodeName != "a" && !ev.target.classList.contains("filter")) {
+        return;
+    }
+
+    let key = ev.target.parentElement.dataset['field'];
+    let value = ev.target.parentElement.firstElementChild.textContent;
+    ev.target.href = addFilter(key, value, ev.target.classList.contains("filter-exclude"));
+});
+
 function collectFieldStats(field) {
     var values = document.getElementsByClassName(field.dataset['class']);
     var total = 0;

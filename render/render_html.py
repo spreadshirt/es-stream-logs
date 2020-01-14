@@ -173,8 +173,8 @@ class HTMLRenderer:
 {% for field, val in fields.items() %}
     <td data-field="{{ field | e }}" class="field-{{ field | e }}">
         <div class="field-container">{{ val }}</div>
-        <span class="filter filter-include" title="Filter for results matching value">🔎</span>
-        <span class="filter filter-exclude" title="Exclude results matching value">🗑</span>
+        <a class="filter filter-include" title="Filter for results matching value" href="#">🔎</span>
+        <a class="filter filter-exclude" title="Exclude results matching value" href="#">🗑</span>
     </td>
 {% endfor %}
 </tr>
