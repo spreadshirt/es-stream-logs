@@ -56,7 +56,7 @@ class HTMLRenderer:
 
         <span>
             <label for="q">q:</label>
-            <input type="search" name="q" value="{{ query.query_string or "" | e}}" placeholder="query string query" />
+            <input type="search" name="q" value="{{ (query.query_string or "") | e}}" placeholder="query string query" />
         </span>
 
     {% for field,value in query.args.items() %}
