@@ -57,6 +57,97 @@ for (let i = 0; i < queryFilters.length; i++) {
 	queryFilter.appendChild(removeFilterButton);
 }
 
+let completions = {
+    fieldNames: new Set(),
+    fieldValues: new Map(),
+
+    rowsScanned: 0,
+
+    update: function(nameCompletionsEl) {
+        let start = new Date();
+        let rows = document.querySelectorAll(".results .row");
+        for (let i = this.rowsScanned; i < rows.length; i++) {
+            let source = JSON.parse(rows[i].dataset['source']);
+            let flatSource = flattenObject({}, "", source);
+            Object.keys(flatSource).forEach((field) => {
+                if (!this.fieldValues.has(field)) {
+                    this.fieldValues.set(field, new Set());
+                    nameCompletionsEl.appendChild(makeElement("option", {
+                        "value": field,
+                    }, field));
+                }
+
+                this.fieldValues.get(field).add(flatSource[field]);
+            });
+
+            this.rowsScanned = i;
+        }
+        let end = new Date();
+        console.log("completion took " + (end - start) + "ms");
+    }
+};
+
+let newFieldEl = makeElement("span", {"classList": ["field-filter"]},
+    [makeElement("input", {
+        "type": "button",
+        "value": "+",
+        "title": "Add new filter",
+        "onclick": function(ev) {
+            // make params visible
+            let fieldNameEl = newFieldEl.querySelector(".field-name");
+            fieldNameEl.style = "display: inline-block";
+            let fieldValueEl = newFieldEl.querySelector(".field-value");
+            fieldValueEl.style = "display: inline-block";
+
+            // focus on field-name
+            fieldNameEl.focus();
+
+            // calculate completion info
+            let fieldNameCompletionEl = query.querySelector("#field-name-completion");
+            completions.update(fieldNameCompletionEl);
+
+            fieldNameEl.setAttribute("list", "field-name-completion");
+            fieldValueEl.setAttribute("list", "field-value-completion");
+
+            fieldNameEl.oninput = function(ev) {
+                fieldValueEl.name = ev.target.value;
+            }
+        },
+    }),
+        document.createTextNode(" "),
+        makeElement("input", {
+            "type": "text",
+            "placeholder": "field name",
+            "autocomplete": "on",
+            "classList": ["field-name"],
+            "style": "display: none",
+        }),
+        makeElement("datalist", {"id": "field-name-completion"}),
+        document.createTextNode(" "),
+        makeElement("input", {
+            "type": "text",
+            "placeholder": "field content",
+            "classList": ["field-value"],
+            "style": "display: none",
+            "onfocus": function(ev) {
+                let completionsEl = ev.target.parentElement.querySelector("#field-value-completion");
+                completionsEl.innerHTML = "";
+
+                let values = completions.fieldValues.get(ev.target.name);
+                if (values) {
+                    values.forEach((value) => {
+                        completionsEl.appendChild(makeElement("option", {
+                            "value": value,
+                        }, value));
+                    });
+                }
+            },
+        }),
+        makeElement("datalist", {"id": "field-value-completion"}),
+    ]
+);
+query.insertBefore(newFieldEl, query.querySelector(".meta"));
+
 document.body.addEventListener('click', function(ev) {
     if (ev.target.classList.contains("toggle-expand")) {
         expandSource(ev.target);
@@ -219,6 +310,8 @@ function makeElement(tag, attrs, content) {
     }
     if (typeof content == "string") {
         el.textContent = content;
+    } else if (content && content.forEach) {
+        content.forEach((childEl) => el.appendChild(childEl));
     } else if (content) {
         el.appendChild(content);
     }
