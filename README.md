@@ -23,7 +23,7 @@ See [config.json](./config.json) for examples of all of the following.
 ## Development
 
 Use `./scripts/run` to fetch dependencies and start the server.  Then
-visit <http://localhost:3028>.  Set `ES_USER` and `ES_PASSWORD`,
+visit <http://localhost:3028>.  Set `ES_USER` and `ES_PASSWORD` in `.env`,
 otherwise basic auth credentials will be requested to connect to
 elasticsearch.
 

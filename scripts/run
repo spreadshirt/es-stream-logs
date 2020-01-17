@@ -8,4 +8,9 @@ fi
 
 ./venv/bin/python3 -m pip install -r requirements.txt
 
+if [ -f ".env" ]; then
+	echo "Sourcing secrets from '.env'"
+	source .env
+fi
+
 TZ=UTC FLASK_DEBUG=1 ./venv/bin/python3 es-stream-logs.py
