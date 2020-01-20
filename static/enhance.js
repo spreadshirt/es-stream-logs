@@ -69,12 +69,17 @@ let completions = {
         for (let i = this.rowsScanned; i < rows.length; i++) {
             let source = JSON.parse(rows[i].dataset['source']);
             let flatSource = flattenObject({}, "", source);
-            Object.keys(flatSource).forEach((field) => {
+            Object.entries(flatSource).forEach(([field, value]) => {
                 if (!this.fieldValues.has(field)) {
                     this.fieldValues.set(field, new Set());
                     nameCompletionsEl.appendChild(makeElement("option", {
                         "value": field,
                     }, field));
+                   if (typeof value == "string") {
+                       nameCompletionsEl.appendChild(makeElement("option", {
+                           "value": field + ".keyword",
+                       }, field + ".keyword"));
+                   }
                 }
 
                 this.fieldValues.get(field).add(flatSource[field]);
