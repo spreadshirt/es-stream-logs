@@ -29,6 +29,15 @@ body {
 
 #histogram_container {
     height: 130px;
+    position: relative;
+}
+
+#histogram_link {
+    font-size: larger;
+    text-decoration: none;
+    position: absolute;
+    top: 0;
+    right: 1ex;
 }
 
 #histogram {
