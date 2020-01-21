@@ -73,6 +73,14 @@ class Query:
             if key.startswith(":"): # deactivate/ignore this filter (ui feature)
                 continue
 
+            match_kind = "match_phrase"
+            if key.startswith("~"):
+                match_kind = "match"
+                key = key[1:]
+            elif key.startswith("/"):
+                match_kind = "regexp"
+                key = key[1:]
+
             filters = []
             if val == "":
                 filters.append({"exists": {"field": key}})
@@ -86,10 +94,10 @@ class Query:
             else:
                 if "," in val:
                     filters.append({"bool" : {
-                        "should": [{"match_phrase": {key: v}} for v in val.split(',')]
+                        "should": [{match_kind: {key: v}} for v in val.split(',')]
                         }})
                 else:
-                    filters.append({"match_phrase": {key: val}})
+                    filters.append({match_kind: {key: val}})
 
             if exclude:
                 excluded_filters.extend(filters)
