@@ -23,7 +23,7 @@ body {
     text-decoration: none;
 }
 
-#query:hover .field-filter .hide {
+#query .field-filter:hover .hide {
 	visibility: visible;
 }
 
