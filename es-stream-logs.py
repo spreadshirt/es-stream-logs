@@ -13,6 +13,7 @@ import os
 import random
 import sys
 import time
+from urllib.parse import urlparse, parse_qsl
 
 from elasticsearch import Elasticsearch
 import elasticsearch
@@ -56,6 +57,14 @@ def index_route():
     pre {
         white-space: pre-wrap;
     }
+
+    a .medium {
+        opacity: 0.6;
+    }
+
+    a .low {
+        opacity: 0.25;
+    }
     </style>
 </head>
 
@@ -66,7 +75,7 @@ def index_route():
 
 Loads (much) faster than Kibana, queries can be generated easily.</em>
     <ul>{% for query in queries -%}
-        <li><a href="{{ query | e }}">{{query | e}}</a></li>
+        <li><a href="{{ query | e }}">{{ highlight_query(query) }}</a></li>
     {%- endfor %}</ul>
 GET /     - documentation
 
@@ -126,7 +135,22 @@ GET /logs - stream logs from elasticsearch
 </body>
 </html>""")
 
-    return index.render(queries=CONFIG.queries)
+    return index.render(queries=CONFIG.queries, highlight_query=highlight_query)
+
+def highlight_query(query_url):
+    u = urlparse(query_url)
+    query = parse_qsl(u.query)
+
+    param_tmpl = Template("""<span class="{{ highlight_param(qp) | e }}">{{ qp | e }}={{ qv | e }}</span>""")
+    return u.path + "?" + "&".join([param_tmpl.render(highlight_param=highlight_param, qp=qp, qv=qv) for qp, qv in query])
+
+def highlight_param(query_param):
+    if query_param in ["index", "dc", "from", "to"]:
+        return "medium"
+    elif query_param in ["aggregation_terms"]:
+        return "low"
+    else:
+        return ""
 
 def nested_get(dct, keys):
     """ Gets keys recursively from dict, e.g. nested_get({test: inner: 42}, ["test", "inner"])
