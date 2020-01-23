@@ -170,6 +170,8 @@ class Query:
                        ('aggregation_size', str(self.aggregation_size))]
         if self.query_string:
             params += [("q", self.query_string)]
+        if self.fields_original:
+            params += [("fields", self.fields_original)]
         return urllib.parse.urlencode(params)
 
 def collect_fields(cfg, fields, **kwargs):
