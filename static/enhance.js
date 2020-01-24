@@ -172,7 +172,7 @@ document.body.addEventListener('click', function(ev) {
     }
 });
 
-document.body.addEventListener('mouseover', function(ev) {
+document.querySelector(".results tbody").addEventListener('mouseover', function(ev) {
     if (ev.target.nodeName != "a" && !ev.target.classList.contains("filter")) {
         return;
     }
