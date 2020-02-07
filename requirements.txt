@@ -2,3 +2,4 @@ certifi==2019.9.11
 elasticsearch==7.0.4
 Flask==1.1.1
 Jinja2==2.10.3
+python-dotenv==0.10.5
