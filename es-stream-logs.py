@@ -332,8 +332,7 @@ g:hover text {
     <rect fill="{{ sub_bucket.color }}" stroke="{{ sub_bucket.color }}" width="{{ bucket_width }}%" height="{{ sub_bucket.height }}%" y="{{ sub_bucket.offset_y }}%" x="{{ bucket.pos_x }}%"></rect>
 {% endfor %}
     </a>
-    <text y="50%" x="{{ bucket.pos_x }}%">{{ bucket.key }}</text>
-<text y="50%" x="{{ bucket.pos_x }}%">{{ bucket.key }}
+    <text y="50%" x="{{ bucket.pos_x }}%">{{ bucket.key }}
 {{ bucket.label }}</text>
 </g>
 {% else %}
