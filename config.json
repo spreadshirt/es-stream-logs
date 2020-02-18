@@ -19,6 +19,12 @@
   "default_fields": [
     {
       "match_params": {
+        "logger_name": "TracingServletFilter"
+      },
+      "fields": ["@timestamp", "hostname", "request.method", "request.path", "status.code", "request.headers.user-agent", "timings.duration", "tracing.trace_id"]
+    },
+    {
+      "match_params": {
         "index": "application-*"
       },
       "fields": ["@timestamp", "hostname", "level", "message", "thread_name", "stack_trace", "tracing.trace_id"]
@@ -46,6 +52,7 @@
   "queries": [
     "/logs?aggregation_terms=level",
     "/logs?application_name=api&level=ERROR,WARN&aggregation_terms=level",
+    "/logs?aggregation_terms=status.code&logger_name=TracingServletFilter&application_name=api",
     "/logs?index=cdn-*&aggregation_terms=status.code",
     "/logs?index=cdn-*&status.category=5xx&from=now-1d&aggregation_terms=status.code",
     "/logs?timings.duration=>5000&from=now-1h&fields=,timings.duration",
