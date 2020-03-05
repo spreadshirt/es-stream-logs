@@ -303,7 +303,7 @@ def aggregation_svg(es, query: Query):
 
         if query.percentiles_terms:
             percentiles = bucket[query.percentiles_terms]['values']
-            bucket_data['label'] += "\n\n"+"\n".join([f"p{int(float(val)) if float(val).is_integer() else val}: {key}" for val, key in percentiles.items()])
+            bucket_data['label'] += "\n\n"+"  ".join([f"p{int(float(val)) if float(val).is_integer() else val}: {key}" for val, key in percentiles.items()])
 
             bucket_data['percentiles'] = []
             scale_percentile = tinygraph.Scale(1000, (0, max_percentile), (0, 95))
