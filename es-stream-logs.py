@@ -420,7 +420,7 @@ def serve_raw():
     es_query = query.to_elasticsearch(query.from_timestamp)
     resp = es_client.search(index=query.index, body=es_query, request_timeout=query.timeout)
 
-    return Response(json.dumps(resp), content_type="application/json")
+    return Response(json.dumps(resp, indent=2), content_type="application/json")
 
 def parse_doc_timestamp(timestamp: str):
     """ Parse the timestamp of an elasticsearch document. """
