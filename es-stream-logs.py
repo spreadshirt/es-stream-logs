@@ -263,6 +263,11 @@ def aggregation_svg(es, query: Query):
 
     buckets = []
 
+    max_percentile = 0
+    if query.percentiles_terms:
+        for bucket in num_results_buckets:
+            max_percentile = max(max_percentile, bucket[query.percentiles_terms]['values'][str(query.percentiles[-1])])
+
     color_mapper = ColorMapper()
     for bucket in num_results_buckets:
         count = bucket['doc_count']
@@ -271,6 +276,7 @@ def aggregation_svg(es, query: Query):
         bucket_data = {
             "count": count,
             "key": bucket['key_as_string'],
+            "label": f"(count: {count})",
             "height": int((count / max_count) * 100),
             "pos_x": scale.map(bucket['key']),
             "from_ts": from_ts,
@@ -294,6 +300,22 @@ def aggregation_svg(es, query: Query):
                     'color': color_mapper.to_color(sub_bucket['key']),
                 })
             bucket_data['label'] = "\n".join([f"{sub_bucket['key']}: {sub_bucket['doc_count']}" for sub_bucket in sub_buckets])
+
+        if query.percentiles_terms:
+            percentiles = bucket[query.percentiles_terms]['values']
+            bucket_data['label'] += "\n\n"+"\n".join([f"p{int(float(val)) if float(val).is_integer() else val}: {key}" for val, key in percentiles.items()])
+
+            bucket_data['percentiles'] = []
+            scale_percentile = tinygraph.Scale(1000, (0, max_percentile), (0, 95))
+            for percentile, value in percentiles.items():
+                percentile = float(percentile)
+                pretty_percentile = int(percentile) if percentile.is_integer() else percentile
+                bucket_data['percentiles'].append({
+                        'pos_y': 100 - scale_percentile.map(value),
+                        'name': pretty_percentile,
+                        'value': value,
+                        })
+
         buckets.append(bucket_data)
 
     template = Template(r"""<?xml version="1.0" encoding="UTF-8"?>
@@ -326,7 +348,7 @@ g:hover text {
 
 {% for bucket in buckets %}
 {% if bucket.aggregation_terms %}
-<g>
+<g class="bucket">
     <a target="_parent" alt="Logs from {{ bucket.from_ts }} to {{ bucket.to_ts }}" xlink:href="{{ bucket.logs_url | e }}">
 {% for sub_bucket in bucket.sub_buckets %}
     <rect fill="{{ sub_bucket.color }}" stroke="{{ sub_bucket.color }}" width="{{ bucket_width }}%" height="{{ sub_bucket.height }}%" y="{{ sub_bucket.offset_y }}%" x="{{ bucket.pos_x }}%"></rect>
@@ -334,14 +356,22 @@ g:hover text {
     </a>
     <text y="50%" x="{{ bucket.pos_x }}%">{{ bucket.key }}
 {{ bucket.label }}</text>
+{% for percentile in bucket.percentiles %}
+    <line stroke="black" x1="{{ bucket.pos_x }}%" x2="{{ bucket.pos_x + bucket_width }}%"
+        y1="{{ percentile.pos_y }}%" y2="{{ percentile.pos_y }}%" />
+{% endfor %}
 </g>
 {% else %}
-<g>
+<g class="bucket">
     <a target="_parent" alt="Logs from {{ bucket.from_ts }} to {{ bucket.to_ts }}" xlink:href="{{ bucket.logs_url | e }}">
     <rect fill="#00b2a5" stroke="#00b2a5" width="{{ bucket_width }}%" height="{{ bucket.height }}%" y="{{ 100-bucket.height }}%" x="{{ bucket.pos_x }}%"></rect>
     </a>
     <text y="50%" x="{{ bucket.pos_x }}%">{{ bucket.key }}
-(count: {{ bucket.count }})</text>
+{{ bucket.label }}</text>
+{% for percentile in bucket.percentiles %}
+    <line stroke="black" x1="{{ bucket.pos_x }}%" x2="{{ bucket.pos_x + bucket_width }}%"
+        y1="{{ percentile.pos_y }}%" y2="{{ percentile.pos_y }}%" />
+{% endfor %}
 </g>
 {% endif %}
 {% endfor %}
@@ -418,6 +448,20 @@ def serve_raw():
     query = from_request_args(CONFIG, request.args)
 
     es_query = query.to_elasticsearch(query.from_timestamp)
+    if query.aggregation_terms or query.percentiles_terms:
+        from_time = parse_timestamp(query.from_timestamp)
+        to_time = parse_timestamp(query.to_timestamp)
+        interval = query.interval
+        if interval == "auto":
+            try:
+                interval_s = max(1, tinygraph.time_increment(from_time, to_time, 100))
+                interval = tinygraph.pretty_duration(interval_s)
+            except ValueError as ex:
+                raise ValueError("Could not guess interval: ", ex)
+        else:
+            interval_s = parse_offset(interval)
+
+        es_query["aggs"] = query.aggregation("num_results", interval)
     resp = es_client.search(index=query.index, body=es_query, request_timeout=query.timeout)
 
     return Response(json.dumps(resp, indent=2), content_type="application/json")

@@ -40,6 +40,8 @@ class Query:
 
         self.aggregation_terms = kwargs.pop("aggregation_terms", None)
         self.aggregation_size = int(kwargs.pop("aggregation_size", 5))
+        self.percentiles_terms = kwargs.pop("percentiles_terms", None)
+        self.percentiles = list(map(float, kwargs.pop("percentiles", "50,90,99").split(",")))
 
         self.max_results = kwargs.pop("max_results", 5000)
         if self.max_results != "all":
@@ -127,16 +129,21 @@ class Query:
         """ Return (date_histogram) aggregation query. """
         inner_aggs = {}
         if self.aggregation_terms:
-            inner_aggs = {
-                "aggs": {
-                    self.aggregation_terms: {
-                        "terms": {
-                            "field": self.aggregation_terms,
-                            "size": self.aggregation_size,
-                            }
+            inner_aggs[self.aggregation_terms] = {
+                    "terms": {
+                        "field": self.aggregation_terms,
+                        "size": self.aggregation_size,
                         }
                     }
-                }
+
+        if self.percentiles_terms:
+            inner_aggs[self.percentiles_terms] = {
+                    "percentiles": {
+                        "field": self.percentiles_terms,
+                        "percents": self.percentiles,
+                        }
+                    }
+
         aggregation = {
             name: {
                 "date_histogram": {
@@ -145,7 +152,7 @@ class Query:
                     "time_zone": "UTC",
                     "min_doc_count": 1,
                 },
-                **inner_aggs,
+                "aggs": inner_aggs,
             }
         }
         return aggregation
