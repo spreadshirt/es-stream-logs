@@ -215,8 +215,8 @@ def parse_timestamp(timestamp):
 
     raise ValueError(f"could not parse timestamp '{timestamp}'")
 
-def aggregation(es, query: Query):
-    """ Do aggregation query. """
+def aggregation_svg(es, query: Query):
+    """ Execute aggregation query and render as an SVG. """
 
     is_internal = "/logs" in request.headers.get('Referer', '')
     width = query.args.pop('width', '100%' if is_internal else '1800')
@@ -405,7 +405,7 @@ def serve_aggregation():
         return resp
 
     query = from_request_args(CONFIG, request.args)
-    return aggregation(es_client, query)
+    return aggregation_svg(es_client, query)
 
 @APP.route('/raw')
 def serve_raw():
