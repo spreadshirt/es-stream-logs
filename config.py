@@ -56,7 +56,7 @@ class Config:
         return None
 
 def from_file(filename):
-    """ Parse config from YAML in filename. """
+    """ Parse config from json in filename. """
 
     with open(filename, 'r') as fpp:
         return Config(**json.load(fpp))

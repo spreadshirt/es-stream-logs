@@ -18,7 +18,7 @@ from urllib.parse import urlparse, parse_qsl
 from elasticsearch import Elasticsearch
 import elasticsearch
 
-from flask import Flask, Response, abort, escape, request
+from flask import Flask, Response, abort, request
 
 from jinja2 import Template
 
@@ -539,7 +539,7 @@ use &max_results=N or &max_results=all to see more results."""
 def es_client_from(req):
     """ Create elastic search client from request. """
 
-    if ES_USER is None or ES_USER is None:
+    if ES_USER is None or ES_PASSWORD is None:
         if not req.authorization:
             resp = Response('Could not verify your access level for that URL.\n'
                             'You have to login with proper credentials',
