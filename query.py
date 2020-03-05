@@ -37,12 +37,15 @@ class Query:
         self.to_timestamp = kwargs.pop("to", "now")
 
         self.interval = kwargs.pop("interval", "auto")
+
         self.aggregation_terms = kwargs.pop("aggregation_terms", None)
         self.aggregation_size = int(kwargs.pop("aggregation_size", 5))
 
         self.max_results = kwargs.pop("max_results", 5000)
         if self.max_results != "all":
             self.max_results = int(self.max_results)
+
+        self.timeout = int(kwargs.pop("timeout", 10))
 
         self.sort = kwargs.pop("sort", "asc")
 

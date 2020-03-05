@@ -239,7 +239,7 @@ def aggregation(es, query: Query):
 
     es_query = query.to_elasticsearch(query.from_timestamp)
     es_query["aggs"] = query.aggregation("num_results", interval)
-    resp = es.search(index=query.index, body=es_query)
+    resp = es.search(index=query.index, body=es_query, request_timeout=query.timeout)
 
     total_count = 0
     max_count = 0
@@ -418,7 +418,7 @@ def serve_raw():
     query = from_request_args(CONFIG, request.args)
 
     es_query = query.to_elasticsearch(query.from_timestamp)
-    resp = es_client.search(index=query.index, body=es_query)
+    resp = es_client.search(index=query.index, body=es_query, request_timeout=query.timeout)
 
     return Response(json.dumps(resp), content_type="application/json")
 
@@ -468,7 +468,7 @@ def stream_logs(es, renderer, query: Query):
         try:
             query_count += 1
             es_query = query.to_elasticsearch(last_timestamp)
-            resp = es.search(index=query.index, body=es_query)
+            resp = es.search(index=query.index, body=es_query, request_timeout=query.timeout)
             if query_count == 1:
                 results_total = resp['hits']['total']['value']
                 took_ms = resp['took']
