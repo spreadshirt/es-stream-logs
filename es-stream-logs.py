@@ -113,6 +113,16 @@ GET /logs - stream logs from elasticsearch
 
     - <strong>q</strong>: <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax">elastic search query string query</a>
 
+    Aggregations:
+
+    - <strong>aggregation_terms</strong>: count number of messages per term, e.g. `aggregation_terms=level` to aggregate per log level.
+      each term gets a unique color.  some special colors are used for http status codes and log levels.
+    - <strong>aggregation_size</strong>: how many terms to aggregate, default is `5`.
+
+    - <strong>percentile_terms</strong>: collect percentiles for a field, e.g. `percentile_terms=duration`.
+      for html and svg output this is visualized as lines on each histogram bar.
+    - <strong>percentiles</strong>: Percentiles to collect, default is `50,90,99`.
+
     Timerange:
 
     - <strong>from</strong>: how far to fetch messages from the past, e.g. 'now-3d'
