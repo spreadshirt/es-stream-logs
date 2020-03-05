@@ -220,7 +220,10 @@ def aggregation_svg(es, query: Query):
 
     is_internal = "/logs" in request.headers.get('Referer', '')
     width = query.args.pop('width', '100%' if is_internal else '1800')
-    height = query.args.pop('height', '125' if is_internal else '600')
+    width_scale = None
+    if width != '100%':
+        width_scale = tinygraph.Scale(100, (0, 100), (0, int(width)))
+    height = int(query.args.pop('height', '125' if is_internal else '600'))
 
     logs_url = query.as_url('/logs')
 
@@ -264,9 +267,14 @@ def aggregation_svg(es, query: Query):
     buckets = []
 
     max_percentile = 0
+    percentile_lines = None
     if query.percentiles_terms:
+        percentile_lines = {}
         for bucket in num_results_buckets:
-            max_percentile = max(max_percentile, bucket[query.percentiles_terms]['values'][str(query.percentiles[-1])])
+            percentiles = bucket[query.percentiles_terms]['values']
+            for percentile in percentiles.keys():
+                percentile_lines[percentile] = ""
+            max_percentile = max(max_percentile, percentiles[str(query.percentiles[-1])])
 
     color_mapper = ColorMapper()
     for bucket in num_results_buckets:
@@ -308,10 +316,14 @@ def aggregation_svg(es, query: Query):
             bucket_data['percentiles'] = []
             scale_percentile = tinygraph.Scale(1000, (0, max_percentile), (0, 95))
             for percentile, value in percentiles.items():
+                pos_y = 100 - scale_percentile.map(value)
+                if width_scale:
+                    percentile_lines[percentile] += f" {width_scale.map(bucket_data['pos_x']+bucket_width/2)},{pos_y/100 * height}"
+
                 percentile = float(percentile)
                 pretty_percentile = int(percentile) if percentile.is_integer() else percentile
                 bucket_data['percentiles'].append({
-                        'pos_y': 100 - scale_percentile.map(value),
+                        'pos_y': pos_y,
                         'name': pretty_percentile,
                         'value': value,
                         })
@@ -376,10 +388,14 @@ g:hover text {
 {% endif %}
 {% endfor %}
 
+{% if percentile_lines %}
+    <polyline id="percentile" fill="none" stroke="rgba(100, 100, 100, 0.7)" points="{{ percentile_lines[list(percentile_lines.keys())[-1]] }}" />
+{% endif %}
+
 </svg>
 """)
     #return Response(json.dumps(resp), content_type="application/json")
-    return Response(template.render(width=width, height=height, query_str=query_str, is_internal=is_internal, interval=interval, max_count=max_count, avg_count=avg_count, bucket_width=bucket_width, buckets=buckets), content_type="image/svg+xml")
+    return Response(template.render(list=list, width=width, height=height, query_str=query_str, is_internal=is_internal, interval=interval, max_count=max_count, avg_count=avg_count, bucket_width=bucket_width, buckets=buckets, percentile_lines=percentile_lines), content_type="image/svg+xml")
 
 
 class ColorMapper():
