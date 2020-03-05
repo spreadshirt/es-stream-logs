@@ -59,6 +59,9 @@ class HTMLRenderer:
         <input type="text" name="percentiles" hidden value="{{ ",".join(map(str, query.percentiles)) | e }}" />
     {% endif %}
 
+    {% if query.interval != "auto" %}
+        <input type="text" name="interval" hidden value="{{ query.interval | e }}" />
+    {% endif %}
 
         <span>
             <label for="q">q:</label>

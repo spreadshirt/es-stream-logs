@@ -181,6 +181,8 @@ class Query:
         if self.percentiles_terms:
             params += [('percentiles_terms', self.percentiles_terms),
                        ('percentiles', ",".join(map(str, self.percentiles)))]
+        if self.interval != "auto":
+            params += [('interval', self.interval)]
         if self.query_string:
             params += [("q", self.query_string)]
         if self.fields_original:
