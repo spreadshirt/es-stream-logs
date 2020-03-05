@@ -54,6 +54,12 @@ class HTMLRenderer:
         <input type="text" name="aggregation_size" hidden value="{{ query.aggregation_size | e }}" />
     {% endif %}
 
+    {% if query.percentiles_terms %}
+        <input type="text" name="percentiles_terms" hidden value="{{ query.percentiles_terms | e }}" />
+        <input type="text" name="percentiles" hidden value="{{ ",".join(map(str, query.percentiles)) | e }}" />
+    {% endif %}
+
+
         <span>
             <label for="q">q:</label>
             <input type="search" name="q" value="{{ (query.query_string or "") | e}}" placeholder="query string query" />
@@ -125,7 +131,7 @@ class HTMLRenderer:
         for order in ["asc", "desc"]:
             sort_orders[order] = order == self.query.sort
 
-        return template.render(aggregation_url=aggregation_url, fields=fields, datacenters=datacenters, query=self.query, indices=self.config.indices, sort_orders=sort_orders)
+        return template.render(map=map, str=str, aggregation_url=aggregation_url, fields=fields, datacenters=datacenters, query=self.query, indices=self.config.indices, sort_orders=sort_orders)
 
     def num_results(self, results_total, took_ms):
         """ Render info about number of results. """

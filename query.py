@@ -178,6 +178,9 @@ class Query:
         if self.aggregation_terms:
             params += [('aggregation_terms', self.aggregation_terms),
                        ('aggregation_size', str(self.aggregation_size))]
+        if self.percentiles_terms:
+            params += [('percentiles_terms', self.percentiles_terms),
+                       ('percentiles', ",".join(map(str, self.percentiles)))]
         if self.query_string:
             params += [("q", self.query_string)]
         if self.fields_original:
