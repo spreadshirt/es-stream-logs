@@ -38,7 +38,7 @@ class HTMLRenderer:
     {% endfor %}
         </select>
 
-        <input type="text" name="index" title="elasticsearch index" list="indices" value="{{ query.index | e }}" autocomplete="on" />
+        <input type="text" name="index" title="elasticsearch index" list="indices" size="{{ len(query.index) }}" value="{{ query.index | e }}" autocomplete="on" />
         <datalist id="indices">
     {% for index in indices %}
             <option value="{{ index | e }}">{{ index | e }}</option>
@@ -71,7 +71,7 @@ class HTMLRenderer:
     {% for field, value in query.args.items() %}
         <span class="field-filter{% if field.startswith('-') %} excluded{% endif %}{% if field.startswith(':') %} disabled{% endif %}">
             <label for="{{ field | e }}">{{ field | e }}:</label>
-            <input type="text" name="{{ field | e }}" value="{{ value | e }}" />
+            <input type="text" name="{{ field | e }}" size="{{ min(len(value), 30) }}" value="{{ value | e }}" />
             {% if field.startswith(':') %}
                 <a class="hide" title="Re-enable filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value), with_param=(field[1:],value)) }}">👁</a>
             {% else %}
@@ -87,8 +87,8 @@ class HTMLRenderer:
     {% endfor %}
 
         <span class="meta">
-            <input type="text" name="from" value="{{ query.from_timestamp | e }}" />
-            <input type="text" name="to" value="{{ query.to_timestamp | e }}" />
+            <input type="text" name="from" size="{{ len(query.from_timestamp) }}" value="{{ query.from_timestamp | e }}" />
+            <input type="text" name="to" size="{{ len(query.to_timestamp) }}" value="{{ query.to_timestamp | e }}" />
 
             <select name="sort" title="sort order">
     {% for sort_order, selected in sort_orders.items() %}
@@ -139,7 +139,7 @@ class HTMLRenderer:
         for order in ["asc", "desc"]:
             sort_orders[order] = order == self.query.sort
 
-        return template.render(map=map, str=str, aggregation_url=aggregation_url, fields=fields, datacenters=datacenters, query=self.query, indices=self.config.indices, sort_orders=sort_orders)
+        return template.render(map=map, str=str, len=len, min=min, aggregation_url=aggregation_url, fields=fields, datacenters=datacenters, query=self.query, indices=self.config.indices, sort_orders=sort_orders)
 
     def num_results(self, results_total, took_ms):
         """ Render info about number of results. """
