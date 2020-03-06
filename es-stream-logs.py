@@ -295,6 +295,7 @@ def aggregation_svg(es, query: Query):
             "count": count,
             "key": bucket['key_as_string'],
             "label": f"(count: {count})",
+            "label_y": "15%" if is_internal else "50%",
             "height": int((count / max_count) * 100),
             "pos_x": scale.map(bucket['key']),
             "from_ts": from_ts,
@@ -376,7 +377,7 @@ g:hover text {
     <rect fill="{{ sub_bucket.color }}" stroke="{{ sub_bucket.color }}" width="{{ bucket_width }}%" height="{{ sub_bucket.height }}%" y="{{ sub_bucket.offset_y }}%" x="{{ bucket.pos_x }}%"></rect>
 {% endfor %}
     </a>
-    <text y="50%" x="{{ bucket.pos_x }}%">{{ bucket.key }}
+    <text y="{{ bucket.label_y }}" x="{{ bucket.pos_x }}%">{{ bucket.key }}
 {{ bucket.label }}</text>
 {% for percentile in bucket.percentiles %}
     <line stroke="black" x1="{{ bucket.pos_x }}%" x2="{{ bucket.pos_x + bucket_width }}%"
@@ -388,7 +389,7 @@ g:hover text {
     <a target="_parent" alt="Logs from {{ bucket.from_ts }} to {{ bucket.to_ts }}" xlink:href="{{ bucket.logs_url | e }}">
     <rect fill="#00b2a5" stroke="#00b2a5" width="{{ bucket_width }}%" height="{{ bucket.height }}%" y="{{ 100-bucket.height }}%" x="{{ bucket.pos_x }}%"></rect>
     </a>
-    <text y="50%" x="{{ bucket.pos_x }}%">{{ bucket.key }}
+    <text y="{{ bucket.label_y }}" x="{{ bucket.pos_x }}%">{{ bucket.key }}
 {{ bucket.label }}</text>
 {% for percentile in bucket.percentiles %}
     <line stroke="black" x1="{{ bucket.pos_x }}%" x2="{{ bucket.pos_x + bucket_width }}%"
