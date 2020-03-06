@@ -355,10 +355,11 @@ rect {
     stroke-width: 1px;
 }
 
-g text {
-    text-anchor: middle;
+text {
     white-space: pre;
+}
 
+g text {
     display: none;
 }
 
@@ -367,7 +368,7 @@ g:hover text {
 }
 </style>
 
-<text x="10" y="14">{{ query_str + " | " if not is_internal else '' }}count per {{ interval }}: max: {{ max_count }}, avg: {{ avg_count }}</text>
+<text x="10" y="14">{{ query_str + "\n" if not is_internal else '' }}count per {{ interval }}: max: {{ max_count }}, avg: {{ avg_count }}</text>
 
 {% for bucket in buckets %}
 {% if bucket.aggregation_terms %}
