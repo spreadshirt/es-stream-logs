@@ -77,6 +77,11 @@ class HTMLRenderer:
             {% else %}
                 <a class="hide" title="Disable filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value), with_param=(':'+field,value)) }}">👁</a>
             {% endif %}
+            {% if field.startswith('-') %}
+                <a class="hide" title="Include '{{ field[1:] | e }}'" href="?{{ query.as_params(without_param=(field, value), with_param=(field[1:],value)) }}">¬</a>
+            {% else %}
+                <a class="hide" title="Exclude '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value), with_param=('-'+field,value)) }}">¬</a>
+            {% endif %}
             <a class="hide remove-filter" title="Remove filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value)) }}">🗑</a>
         </span>
     {% endfor %}
