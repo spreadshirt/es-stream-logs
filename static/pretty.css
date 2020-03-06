@@ -10,20 +10,32 @@ body {
     display: inline-block;
     border-radius: 5px;
     padding: 0 .5em;
+    position: relative;
 }
 
 #query .field-filter.disabled * {
     opacity: 0.4;
 }
 
-#query .field-filter .hide {
-    visibility: hidden;
+#query .field-actions a {
     font-size: larger;
     color: black;
     text-decoration: none;
 }
 
-#query .field-filter:hover .hide {
+#query .field-filter .field-actions {
+    visibility: hidden;
+
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    padding: 0.5ex;
+
+    position: absolute;
+    bottom: -0.5em;
+    right: 0;
+}
+
+#query .field-filter:hover .field-actions {
 	visibility: visible;
 }
 

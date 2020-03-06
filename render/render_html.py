@@ -58,17 +58,19 @@ class HTMLRenderer:
         <span class="field-filter{% if field.startswith('-') %} excluded{% endif %}{% if field.startswith(':') %} disabled{% endif %}">
             <label for="{{ field | e }}">{{ field | e }}:</label>
             <input type="text" name="{{ field | e }}" size="{{ min(len(value), 30) }}" value="{{ value | e }}" />
-            {% if field.startswith(':') %}
-                <a class="hide" title="Re-enable filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value), with_param=(field[1:],value)) }}">👁</a>
-            {% else %}
-                <a class="hide" title="Disable filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value), with_param=(':'+field,value)) }}">👁</a>
-            {% endif %}
-            {% if field.startswith('-') %}
-                <a class="hide" title="Include '{{ field[1:] | e }}'" href="?{{ query.as_params(without_param=(field, value), with_param=(field[1:],value)) }}">¬</a>
-            {% else %}
-                <a class="hide" title="Exclude '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value), with_param=('-'+field,value)) }}">¬</a>
-            {% endif %}
-            <a class="hide remove-filter" title="Remove filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value)) }}">🗑</a>
+            <span class="field-actions">
+                {% if field.startswith(':') %}
+                    <a title="Re-enable filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value), with_param=(field[1:],value)) }}">👁</a>
+                {% else %}
+                    <a title="Disable filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value), with_param=(':'+field,value)) }}">👁</a>
+                {% endif %}
+                {% if field.startswith('-') %}
+                    <a title="Include '{{ field[1:] | e }}'" href="?{{ query.as_params(without_param=(field, value), with_param=(field[1:],value)) }}">¬</a>
+                {% else %}
+                    <a title="Exclude '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value), with_param=('-'+field,value)) }}">¬</a>
+                {% endif %}
+                    <a class="remove-filter" title="Remove filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value)) }}">🗑</a>
+            </span>
         </span>
     {% endfor %}
 
@@ -76,7 +78,9 @@ class HTMLRenderer:
         <span class="field-filter">
             <label for="aggregation_terms">aggregation:</label>
             <input type="text" name="aggregation_terms" size="{{ len(query.aggregation_terms) }}" value="{{ query.aggregation_terms | e }}" />
-            <a class="hide remove-filter" title="Remove aggregation on '{{ query.aggregation_terms | e }}'" href="?{{ query.as_params(without_param=("aggregation_terms", query.aggregation_terms)) }}">🗑</a>
+            <span class="field-actions">
+                <a class="hide remove-filter" title="Remove aggregation on '{{ query.aggregation_terms | e }}'" href="?{{ query.as_params(without_param=("aggregation_terms", query.aggregation_terms)) }}">🗑</a>
+            </span>
         </span>
         <input type="text" name="aggregation_size" hidden value="{{ query.aggregation_size | e }}" />
     {% endif %}
@@ -86,10 +90,11 @@ class HTMLRenderer:
             <label for="percentiles_terms">percentiles of:</label>
             <input type="text" name="percentiles_terms" title="percentiles of" size="{{ len(query.percentiles_terms) }}" value="{{ query.percentiles_terms | e }}" />
 
-            <input type="text" name="percentiles" title="percentiles"
-            size="{{ len(query.percentiles_str) }}" value="{{ query.percentiles_str | e }}" />
+            <input type="text" name="percentiles" title="percentiles" size="{{ len(query.percentiles_str) }}" value="{{ query.percentiles_str | e }}" />
 
-            <a class="hide remove-filter" title="Remove percentiles of '{{ query.percentiles_terms | e }}'" href="?{{ query.as_params(without_param=("percentiles_terms", query.percentiles_terms)) }}">🗑</a>
+            <span class="field-actions">
+                <a class="hide remove-filter" title="Remove percentiles of '{{ query.percentiles_terms | e }}'" href="?{{ query.as_params(without_param=("percentiles_terms", query.percentiles_terms)) }}">🗑</a>
+            </span>
         </span>
     {% endif %}
 
