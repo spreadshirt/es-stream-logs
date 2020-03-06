@@ -54,6 +54,7 @@
     "/logs?aggregation_terms=level",
     "/logs?application_name=api&level=ERROR,WARN&aggregation_terms=level",
     "/logs?aggregation_terms=status.code&logger_name=TracingServletFilter&application_name=api",
+    "/logs?aggregation_terms=status.code&percentiles_terms=timings.duration&logger_name=TracingServletFilter&application_name=api",
     "/logs?index=cdn-*&aggregation_terms=status.code",
     "/logs?index=cdn-*&status.category=5xx&from=now-1d&aggregation_terms=status.code",
     "/logs?timings.duration=>5000&from=now-1h&fields=,timings.duration",

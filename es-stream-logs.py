@@ -157,7 +157,7 @@ def highlight_query(query_url):
 def highlight_param(query_param):
     if query_param in ["index", "dc", "from", "to"]:
         return "medium"
-    elif query_param in ["aggregation_terms"]:
+    elif query_param in ["aggregation_terms", "aggregation_size", "percentiles_terms", "percentiles", "interval"]:
         return "low"
     else:
         return ""
