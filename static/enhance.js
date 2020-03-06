@@ -50,7 +50,7 @@ markdownButton.onclick = function(ev) {
 	let imageLink = new URL(location.href);
 	imageLink.pathname = "/aggregation.svg";
 	imageLink.searchParams.set("width", 900);
-	imageLink.searchParams.set("height", 150);
+	imageLink.searchParams.set("height", 200);
 	let asMarkdown = `[![visualization for ${location.href}](${imageLink})](${location.href})`;
 	navigator.clipboard.writeText(asMarkdown).then(function() {
 		markdownButton.style.color = "green";
