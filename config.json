@@ -59,5 +59,6 @@
     "/logs?index=cdn-*&status.category=5xx&from=now-1d&aggregation_terms=status.code",
     "/logs?timings.duration=>5000&from=now-1h&fields=,timings.duration",
     "/aggregation.svg?index=cdn-*&status.category=5xx&from=now-1d&aggregation_terms=status.code"
+    "/raw?index=cdn-*&status.category=5xx&from=now-1d&aggregation_terms=status.code"
   ]
 }
