@@ -318,7 +318,7 @@ def aggregation_svg(es, query: Query):
                     'offset_y': offset_y,
                     'color': color_mapper.to_color(sub_bucket['key']),
                 })
-            bucket_data['label'] = "\n".join([f"{sub_bucket['key']}: {sub_bucket['doc_count']}" for sub_bucket in sub_buckets])
+            bucket_data['label'] = "\n".join([f"{sub_bucket['key']}: {sub_bucket['doc_count']} ({(sub_bucket['doc_count'] / count) * 100 :.2f}%)" for sub_bucket in sub_buckets])
 
         if query.percentiles_terms:
             percentiles = bucket[query.percentiles_terms]['values']
