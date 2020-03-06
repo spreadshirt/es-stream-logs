@@ -156,6 +156,8 @@ class Query:
                 "aggs": inner_aggs,
             }
         }
+        if self.percentiles_terms:
+            aggregation["percentiles"] = inner_aggs[self.percentiles_terms]
         return aggregation
 
     def as_url(self, base_url):

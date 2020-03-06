@@ -347,6 +347,22 @@ def aggregation_svg(es, query: Query):
 
         buckets.append(bucket_data)
 
+    query_title = ""
+    if not is_internal:
+        query_title += query_str + "\n"
+
+    query_title += f"count per {interval}: max: {max_count}, avg: {avg_count}"
+
+    if query.percentiles_terms:
+        percentiles = resp["aggregations"]["percentiles"]["values"]
+        query_title += " ("
+        ps = []
+        for p, val in percentiles.items():
+            val = int(val) if val.is_integer() else '{:.2f}'.format(val)
+            ps.append(f"p{int(float(p)) if float(p).is_integer() else p}: {val}")
+        query_title += ", ".join(ps)
+        query_title += ")"
+
     template = Template(r"""<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" class="chart" width="{{ width }}" height="{{ height }}" xmlns:xlink="http://www.w3.org/1999/xlink">
 
@@ -374,7 +390,7 @@ g:hover text {
 }
 </style>
 
-<text x="10" y="14">{{ query_str + "\n" if not is_internal else '' }}count per {{ interval }}: max: {{ max_count }}, avg: {{ avg_count }}</text>
+<text x="10" y="14">{{ query_title }}</text>
 
 {% for bucket in buckets %}
 {% if bucket.aggregation_terms %}
@@ -412,8 +428,7 @@ g:hover text {
 
 </svg>
 """)
-    #return Response(json.dumps(resp), content_type="application/json")
-    return Response(template.render(list=list, width=width, height=height, query_str=query_str, is_internal=is_internal, interval=interval, max_count=max_count, avg_count=avg_count, bucket_width=bucket_width, buckets=buckets, percentile_lines=percentile_lines), content_type="image/svg+xml")
+    return Response(template.render(list=list, width=width, height=height, query_title=query_title, bucket_width=bucket_width, buckets=buckets, percentile_lines=percentile_lines), content_type="image/svg+xml")
 
 
 class ColorMapper():
