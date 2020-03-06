@@ -44,7 +44,7 @@ body {
     position: relative;
 }
 
-#histogram_link {
+#histogram_links {
     font-size: larger;
     text-decoration: none;
     position: absolute;

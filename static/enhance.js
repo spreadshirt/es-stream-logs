@@ -39,6 +39,27 @@ window.addEventListener("DOMContentLoaded", function() {
     histogramRefresh = false;
 });
 
+var histogramLinks = document.querySelector("#histogram_links");
+var markdownButton = document.createElement("a");
+markdownButton.textContent = "🗍";
+markdownButton.title = "copy as markdown";
+markdownButton.href = "#";
+markdownButton.onclick = function(ev) {
+	ev.preventDefault();
+
+	let imageLink = new URL(location.href);
+	imageLink.pathname = "/aggregation.svg";
+	imageLink.searchParams.set("width", 900);
+	imageLink.searchParams.set("height", 150);
+	let asMarkdown = `[![visualization for ${location.href}](${imageLink})](${location.href})`;
+	navigator.clipboard.writeText(asMarkdown).then(function() {
+		markdownButton.style.color = "green";
+		window.setTimeout(function() { markdownButton.style.color = ""; }, 1000);
+	}, function() { alert("could not write to clipboard"); });
+};
+histogramLinks.insertBefore(document.createTextNode(" "), histogramLinks.firstElementChild);
+histogramLinks.insertBefore(markdownButton, histogramLinks.firstChild);
+
 var query = document.querySelector("#query");
 var queryFilters = document.querySelectorAll(".field-filter");
 for (let i = 0; i < queryFilters.length; i++) {

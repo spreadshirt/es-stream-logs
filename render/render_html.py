@@ -127,7 +127,9 @@ class HTMLRenderer:
 </section>
 
 <div id="histogram_container">
-    <a id="histogram_link" rel="noreferrer" href="{{ aggregation_url }}" title="Render query as image">↬</a>
+    <span id="histogram_links">
+        <a rel="noreferrer" href="{{ aggregation_url }}" title="Render query as image">↬</a>
+    </span>
 
     <object id="histogram" type="image/svg+xml" alt="Visualization of log entries" data="{{ aggregation_url }}"></object>
 </div>
