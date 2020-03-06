@@ -119,7 +119,7 @@ GET /logs - stream logs from elasticsearch
       each term gets a unique color.  some special colors are used for http status codes and log levels.
     - <strong>aggregation_size</strong>: how many terms to aggregate, default is `5`.
 
-    - <strong>percentile_terms</strong>: collect percentiles for a field, e.g. `percentile_terms=duration`.
+    - <strong>percentiles_terms</strong>: collect percentiles for a field, e.g. `percentiles_terms=duration`.
       for html and svg output this is visualized as lines on each histogram bar.
     - <strong>percentiles</strong>: Percentiles to collect, default is `50,90,99`.
 
