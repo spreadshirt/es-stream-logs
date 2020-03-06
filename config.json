@@ -14,7 +14,8 @@
     "*"
   ],
   "field_format": {
-    "tracing.trace_id": "<a href=\"https://tracing.example.com/?traceId={tracing.trace_id}&dc={dc}\">{tracing.trace_id}</a> <a class=\"trace-logs\" title=\"Logs for trace_id {tracing.trace_id}\"href=\"/logs?dc={dc}&index={index}&from=now-14d&tracing.trace_id={tracing.trace_id}\">…</a>"
+    "tracing.trace_id": "<a href=\"https://tracing.example.com/?traceId={tracing.trace_id}&dc={dc}\">{tracing.trace_id}</a> <a class=\"trace-logs\" title=\"Logs for trace_id {tracing.trace_id}\"href=\"/logs?dc={dc}&index={index}&from=now-14d&tracing.trace_id={tracing.trace_id}\">…</a>",
+    "request.url": "<a href=\"{request.url}\">{request.url}</a>"
   },
   "default_fields": [
     {
