@@ -53,8 +53,6 @@ for (let i = 0; i < queryFilters.length; i++) {
         queryFilter.style.backgroundColor="transparent";
         queryFilter.style.textDecoration="initial";
     }, false);
-
-	queryFilter.appendChild(removeFilterButton);
 }
 
 let completions = {
