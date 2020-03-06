@@ -49,16 +49,6 @@ class HTMLRenderer:
         <input type="text" name="fields" hidden value="{{ query.fields_original | e }}" />
     {% endif %}
 
-    {% if query.aggregation_terms %}
-        <input type="text" name="aggregation_terms" hidden value="{{ query.aggregation_terms | e }}" />
-        <input type="text" name="aggregation_size" hidden value="{{ query.aggregation_size | e }}" />
-    {% endif %}
-
-    {% if query.percentiles_terms %}
-        <input type="text" name="percentiles_terms" hidden value="{{ query.percentiles_terms | e }}" />
-        <input type="text" name="percentiles" hidden value="{{ ",".join(map(str, query.percentiles)) | e }}" />
-    {% endif %}
-
         <span>
             <label for="q">q:</label>
             <input type="search" name="q" value="{{ (query.query_string or "") | e}}" placeholder="query string query" />
@@ -81,6 +71,27 @@ class HTMLRenderer:
             <a class="hide remove-filter" title="Remove filter for '{{ field | e }}'" href="?{{ query.as_params(without_param=(field, value)) }}">🗑</a>
         </span>
     {% endfor %}
+
+    {% if query.aggregation_terms %}
+        <span class="field-filter">
+            <label for="aggregation_terms">aggregation:</label>
+            <input type="text" name="aggregation_terms" size="{{ len(query.aggregation_terms) }}" value="{{ query.aggregation_terms | e }}" />
+            <a class="hide remove-filter" title="Remove aggregation on '{{ query.aggregation_terms | e }}'" href="?{{ query.as_params(without_param=("aggregation_terms", query.aggregation_terms)) }}">🗑</a>
+        </span>
+        <input type="text" name="aggregation_size" hidden value="{{ query.aggregation_size | e }}" />
+    {% endif %}
+
+    {% if query.percentiles_terms %}
+        <span class="field-filter">
+            <label for="percentiles_terms">percentiles of:</label>
+            <input type="text" name="percentiles_terms" title="percentiles of" size="{{ len(query.percentiles_terms) }}" value="{{ query.percentiles_terms | e }}" />
+
+            <input type="text" name="percentiles" title="percentiles"
+            size="{{ len(query.percentiles_str) }}" value="{{ query.percentiles_str | e }}" />
+
+            <a class="hide remove-filter" title="Remove percentiles of '{{ query.percentiles_terms | e }}'" href="?{{ query.as_params(without_param=("percentiles_terms", query.percentiles_terms)) }}">🗑</a>
+        </span>
+    {% endif %}
 
         <span class="meta">
             <input type="text" name="from" title="from" size="{{ len(query.from_timestamp)-1 }}" value="{{ query.from_timestamp | e }}" />

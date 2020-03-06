@@ -42,6 +42,7 @@ class Query:
         self.aggregation_size = int(kwargs.pop("aggregation_size", 5))
         self.percentiles_terms = kwargs.pop("percentiles_terms", None)
         self.percentiles = list(map(float, kwargs.pop("percentiles", "50,90,99").split(",")))
+        self.percentiles_str = ",".join(map(lambda p: str(int(p) if p.is_integer() else p), self.percentiles))
 
         self.max_results = kwargs.pop("max_results", 5000)
         if self.max_results != "all":
@@ -172,13 +173,13 @@ class Query:
         args = list(self.args.items())
         if with_param:
             args += [with_param]
-        if without_param:
+        if without_param and not without_param[0] in ["aggregation_terms", "percentiles_terms"]:
             args.remove(without_param)
         params += args
-        if self.aggregation_terms:
+        if self.aggregation_terms and not ("aggregation_terms", self.aggregation_terms) == without_param:
             params += [('aggregation_terms', self.aggregation_terms),
                        ('aggregation_size', str(self.aggregation_size))]
-        if self.percentiles_terms:
+        if self.percentiles_terms and not ("percentiles_terms", self.percentiles_terms) == without_param:
             params += [('percentiles_terms', self.percentiles_terms),
                        ('percentiles', ",".join(map(str, self.percentiles)))]
         if self.interval != "auto":
