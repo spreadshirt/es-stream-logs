@@ -59,10 +59,6 @@ class HTMLRenderer:
         <input type="text" name="percentiles" hidden value="{{ ",".join(map(str, query.percentiles)) | e }}" />
     {% endif %}
 
-    {% if query.interval != "auto" %}
-        <input type="text" name="interval" hidden value="{{ query.interval | e }}" />
-    {% endif %}
-
         <span>
             <label for="q">q:</label>
             <input type="search" name="q" value="{{ (query.query_string or "") | e}}" placeholder="query string query" />
@@ -87,8 +83,17 @@ class HTMLRenderer:
     {% endfor %}
 
         <span class="meta">
-            <input type="text" name="from" size="{{ len(query.from_timestamp) }}" value="{{ query.from_timestamp | e }}" />
-            <input type="text" name="to" size="{{ len(query.to_timestamp) }}" value="{{ query.to_timestamp | e }}" />
+            <input type="text" name="from" title="from" size="{{ len(query.from_timestamp)-1 }}" value="{{ query.from_timestamp | e }}" />
+            <input type="text" name="to" title="to" size="{{ len(query.to_timestamp)-1 }}" value="{{ query.to_timestamp | e }}" />
+
+            <input type="text" name="interval" title="interval" size="2" value="{{ query.interval | e }}" autocomplete="on" list="intervals" />
+            <datalist id="intervals">
+                <option value="auto">auto</option>
+                <option value="30s">30s</option>
+                <option value="1m">1m</option>
+                <option value="15m">15m</option>
+                <option value="1h">1h</option>
+            </datalist>
 
             <select name="sort" title="sort order">
     {% for sort_order, selected in sort_orders.items() %}
