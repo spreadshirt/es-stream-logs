@@ -33,7 +33,7 @@ class Query:
         self.datacenter = kwargs.pop("dc", config.default_endpoint)
         self.index = kwargs.pop("index", "application-*")
 
-        self.from_timestamp = kwargs.pop("from", "now-5m")
+        self.from_timestamp = kwargs.pop("from", "now-15m")
         self.to_timestamp = kwargs.pop("to", "now")
 
         self.interval = kwargs.pop("interval", "auto")
@@ -48,7 +48,7 @@ class Query:
         if self.max_results != "all":
             self.max_results = int(self.max_results)
 
-        self.timeout = int(kwargs.pop("timeout", 10))
+        self.timeout = int(kwargs.pop("timeout", 30))
 
         self.sort = kwargs.pop("sort", "asc")
 
