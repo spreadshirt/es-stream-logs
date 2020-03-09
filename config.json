@@ -34,7 +34,13 @@
       "match_params": {
         "index": "cdn-*"
       },
-      "fields": ["@timestamp", "request.method", "request.host.subdomain", "request.path", "status.code", "user_agent.value", "tracing.trace_id"]
+      "fields": ["@timestamp", "request.host.subdomain", "request.method", "request.path", "status.code", "user_agent.value", "tracing.trace_id"]
+    },
+    {
+      "match_params": {
+        "index": "dc-routing-*"
+      },
+      "fields": ["@timestamp", "router.name", "routing.backend_name", "request.method", "request.path", "status.code", "user_agent.value", "tracing.trace_id"]
     },
     {
       "match_params": {
