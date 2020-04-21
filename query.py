@@ -79,6 +79,11 @@ class Query:
             if key.startswith(":"): # deactivate/ignore this filter (ui feature)
                 continue
 
+            special = True
+            if key.startswith("\\"): # don't parse special characters in filter
+                special = False
+                key = key[1:]
+
             match_kind = "match_phrase"
             if key.startswith("~"):
                 match_kind = "match"
@@ -98,7 +103,7 @@ class Query:
                     msg = f"value for range query on '{key}' must be a number, but was '{val[1:]}'"
                     raise ValueError(msg)
             else:
-                if "," in val:
+                if special and "," in val:
                     filters.append({"bool" : {
                         "should": [{match_kind: {key: v}} for v in val.split(',')]
                         }})

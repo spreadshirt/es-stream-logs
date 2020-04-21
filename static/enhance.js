@@ -343,6 +343,9 @@ function makeElement(tag, attrs, content) {
 }
 
 function addFilter(key, value, exclude, redirect = false) {
+    if (value.includes(",")) {
+        key = "\\" + key;
+    }
     if (exclude) {
         key = "-" + key;
     }
