@@ -499,7 +499,7 @@ def serve_raw():
 
     query = from_request_args(CONFIG, request.args)
 
-    es_query = query.to_elasticsearch(query.from_timestamp)
+    es_query = query.to_elasticsearch(query.from_timestamp, self.max_results)
     if query.aggregation_terms or query.percentiles_terms:
         from_time = parse_timestamp(query.from_timestamp)
         to_time = parse_timestamp(query.to_timestamp)
