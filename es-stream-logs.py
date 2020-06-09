@@ -77,13 +77,14 @@ Loads (much) faster than Kibana, queries can be generated easily.</em>
     <ul>{% for query in queries -%}
         <li><a href="{{ query | e }}">{{ highlight_query(query) }}</a></li>
     {%- endfor %}</ul>
-GET /     - documentation
+GET /       - documentation
 
-GET /raw  - get raw search response from elasticsearch (parameters same as for /logs)
+GET /raw    - get raw search response from elasticsearch (parameters same as for /logs)
+GET /query  - get query that would be sent to elasticsearch (parameters same as for /logs)
 
 GET /aggregation.svg - get rendered histogram (parameters same as for /logs)
 
-GET /logs - stream logs from elasticsearch
+GET /logs   - stream logs from elasticsearch
 
   Query parameters:
 
@@ -498,8 +499,23 @@ def serve_raw():
         return resp
 
     query = from_request_args(CONFIG, request.args)
+    es_query = to_raw_es_query(query)
 
-    es_query = query.to_elasticsearch(query.from_timestamp, self.max_results)
+    resp = es_client.search(index=query.index, body=es_query, request_timeout=query.timeout)
+
+    return Response(json.dumps(resp, indent=2), content_type="application/json")
+
+@APP.route('/query')
+def serve_query():
+    """ Return the query that would be sent to elasticsearch. """
+
+    query = from_request_args(CONFIG, request.args)
+    es_query = to_raw_es_query(query)
+
+    return Response(json.dumps(es_query, indent=2), content_type="application/json")
+
+def to_raw_es_query(query):
+    es_query = query.to_elasticsearch(query.from_timestamp, query.max_results)
     if query.aggregation_terms or query.percentiles_terms:
         from_time = parse_timestamp(query.from_timestamp)
         to_time = parse_timestamp(query.to_timestamp)
@@ -514,9 +530,8 @@ def serve_raw():
             interval_s = parse_offset(interval)
 
         es_query["aggs"] = query.aggregation("num_results", interval)
-    resp = es_client.search(index=query.index, body=es_query, request_timeout=query.timeout)
 
-    return Response(json.dumps(resp, indent=2), content_type="application/json")
+    return es_query
 
 def parse_doc_timestamp(timestamp: str):
     """ Parse the timestamp of an elasticsearch document. """
