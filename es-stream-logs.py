@@ -358,7 +358,7 @@ def aggregation_svg(es, query: Query):
     query_title += f"count per {interval}: max: {max_count}, avg: {avg_count}"
 
     if query.percentiles_terms:
-        percentiles = resp["aggregations"]["percentiles"]["values"]
+        percentiles = resp["aggregations"][query.percentiles_terms]["values"]
         query_title += " ("
         ps = []
         for p, val in percentiles.items():

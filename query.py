@@ -162,7 +162,7 @@ class Query:
             }
         }
         if self.percentiles_terms:
-            aggregation["percentiles"] = inner_aggs[self.percentiles_terms]
+            aggregation[self.percentiles_terms] = inner_aggs[self.percentiles_terms]
         return aggregation
 
     def as_url(self, base_url):
