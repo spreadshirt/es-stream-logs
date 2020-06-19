@@ -288,7 +288,7 @@ def aggregation_svg(es, query: Query):
             percentiles = bucket[query.percentiles_terms]['values']
             for percentile in percentiles.keys():
                 percentile_lines[percentile] = ""
-            max_percentile = max(max_percentile, percentiles[str(query.percentiles[-1])])
+            max_percentile = max(max_percentile or 0, percentiles[str(query.percentiles[-1])] or 0)
 
     color_mapper = ColorMapper()
     for idx, bucket in enumerate(num_results_buckets):
@@ -332,11 +332,13 @@ def aggregation_svg(es, query: Query):
 
         if query.percentiles_terms:
             percentiles = bucket[query.percentiles_terms]['values']
-            bucket_data['label'] += "\n\n"+" ".join([f"p{int(float(val)) if float(val).is_integer() else val}: {key:.2f}" for val, key in percentiles.items()])
+            bucket_data['label'] += "\n\n"+" ".join([f"p{int(float(val)) if float(val).is_integer() else val}: {key or 0:.2f}" for val, key in percentiles.items()])
 
             bucket_data['percentiles'] = []
             scale_percentile = tinygraph.Scale(1000, (0, max_percentile), (0, 95))
             for percentile, value in percentiles.items():
+                if not value:
+                    continue
                 pos_y = 100 - scale_percentile.map(value)
                 if width_scale:
                     percentile_lines[percentile] += f" {width_scale.map(bucket_data['pos_x']+bucket_width/2)},{pos_y/100 * height}"
