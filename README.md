@@ -26,9 +26,3 @@ Use `./scripts/run` to fetch dependencies and start the server.  Then
 visit <http://localhost:3028>.  Set `ES_USER` and `ES_PASSWORD` in `.env`,
 otherwise basic auth credentials will be requested to connect to
 elasticsearch.
-
-## TODO
-
-- [ ] dynamic query modification ("click to exclude/include" like in kibana, "+/-" buttons)
-- [ ] generate links in rundeck-bot
-- [ ] ads (on devblog ;))
