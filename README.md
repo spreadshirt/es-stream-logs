@@ -26,3 +26,7 @@ Use `./scripts/run` to fetch dependencies and start the server.  Then
 visit <http://localhost:3028>.  Set `ES_USER` and `ES_PASSWORD` in `.env`,
 otherwise basic auth credentials will be requested to connect to
 elasticsearch.
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE).
