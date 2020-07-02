@@ -3,6 +3,8 @@
 Streams logs from elasticsearch, controllable via query parameters.
 Loads (much) faster than Kibana, queries can be generated easily.
 
+![screenshot of ui](./screenshot.png)
+
 See <http://localhost:3028> for docs and examples.
 
 ## Configuration
