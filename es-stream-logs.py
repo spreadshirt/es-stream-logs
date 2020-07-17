@@ -18,12 +18,13 @@ from urllib.parse import urlparse, parse_qsl
 from elasticsearch import Elasticsearch
 import elasticsearch
 
-from flask import Flask, Response, abort, request
+from flask import Flask, Response, abort, redirect, request
 
 from jinja2 import Template
 
 # project internal modules
 import config
+import kibana
 from query import Query, from_request_args
 import render
 import tinygraph
@@ -515,6 +516,33 @@ def serve_query():
     es_query = to_raw_es_query(query)
 
     return Response(json.dumps(es_query, indent=2), content_type="application/json")
+
+@APP.route('/kibana')
+def serve_kibana():
+    """ Parse a Kibana url and redirect to the es-stream-logs version. """
+
+    kibana_url = request.args.get('url', None)
+    if not kibana_url:
+        abort(400, "missing url parameter")
+
+    # guess dc from url
+    dc = None
+    kibana_base = urlparse(kibana_url).netloc
+    for config_dc in CONFIG.endpoints:
+        if config_dc in kibana_base:
+            dc = config_dc
+            break
+    if not dc:
+        dc = request.args.get('dc', None)
+    if not dc:
+        abort(400, "missing dc parameter")
+
+    try:
+        query = kibana.parse(kibana_url)
+    except Exception as ex:
+        abort(400, f"could not parse kibana url: {ex}")
+
+    return redirect("/logs?" + query, code=303)
 
 def to_raw_es_query(query):
     es_query = query.to_elasticsearch(query.from_timestamp, query.max_results)
