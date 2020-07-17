@@ -182,6 +182,9 @@ class HTMLRenderer:
             if field == "_source":
                 source = json.dumps(hit['_source'])
                 val = f"<div class=\"source-flattened\">{escape(source)}</div>"
+                fields[field] = val
+                continue
+
             if field in self.config.field_format and val:
                 fmt = self.config.field_format[field]
                 val = FieldFormatter().format(fmt, __query=self.query.as_params(),
