@@ -1,6 +1,6 @@
 FROM python:3-alpine
 
-RUN pip install elasticsearch certifi flask
+RUN pip install elasticsearch certifi flask requests
 
 ADD static /app/static
 
