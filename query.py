@@ -6,10 +6,12 @@ from config import Config
 
 ONLY_ONCE_ARGUMENTS = ["from", "to", "dc", "index", "interval"]
 
+
 def from_request_args(config, args):
     """ Create query from request args. """
     args = consolidate_args(args, ONLY_ONCE_ARGUMENTS)
     return Query(config, **args)
+
 
 def consolidate_args(args, exceptions=None):
     """ Consolidates arguments from a werkzeug.datastructures.MultiDict
@@ -24,6 +26,7 @@ def consolidate_args(args, exceptions=None):
         else:
             res[key] = ','.join(values)
     return res
+
 
 class Query:
     """ A Query contains all information necessary for handling a query
@@ -72,15 +75,15 @@ class Query:
         compare_ops = {"<": "lt", ">": "gt"}
         for key, val in self.args.items():
             exclude = False
-            if key.startswith("-"): # exclude results of this filter
+            if key.startswith("-"):  # exclude results of this filter
                 exclude = True
                 key = key[1:]
 
-            if key.startswith(":"): # deactivate/ignore this filter (ui feature)
+            if key.startswith(":"):  # deactivate/ignore this filter (ui feature)
                 continue
 
             special = True
-            if key.startswith("\\"): # don't parse special characters in filter
+            if key.startswith("\\"):  # don't parse special characters in filter
                 special = False
                 key = key[1:]
 
@@ -104,9 +107,9 @@ class Query:
                     raise ValueError(msg)
             else:
                 if special and "," in val:
-                    filters.append({"bool" : {
+                    filters.append({"bool": {
                         "should": [{match_kind: {key: v}} for v in val.split(',')]
-                        }})
+                    }})
                 else:
                     filters.append({match_kind: {key: val}})
 
@@ -120,15 +123,15 @@ class Query:
             timerange = {"range": {"@timestamp": {"gte": self.from_timestamp, "lt": from_timestamp}}}
         query = {
             "size": num_results,
-            "sort": [{"@timestamp":{"order": self.sort}}],
+            "sort": [{"@timestamp": {"order": self.sort}}],
             "track_total_hits": True,
             "query": {
                 "bool": {
                     "must": [*required_filters, timerange],
                     "must_not": excluded_filters
-                    }
                 }
             }
+        }
         return query
 
     def aggregation(self, name, interval):
@@ -136,19 +139,19 @@ class Query:
         inner_aggs = {}
         if self.aggregation_terms:
             inner_aggs[self.aggregation_terms] = {
-                    "terms": {
-                        "field": self.aggregation_terms,
-                        "size": self.aggregation_size,
-                        }
-                    }
+                "terms": {
+                    "field": self.aggregation_terms,
+                    "size": self.aggregation_size,
+                }
+            }
 
         if self.percentiles_terms:
             inner_aggs[self.percentiles_terms] = {
-                    "percentiles": {
-                        "field": self.percentiles_terms,
-                        "percents": self.percentiles,
-                        }
-                    }
+                "percentiles": {
+                    "field": self.percentiles_terms,
+                    "percents": self.percentiles,
+                }
+            }
 
         aggregation = {
             name: {
@@ -176,7 +179,7 @@ class Query:
                   ('from', self.from_timestamp),
                   ('to', self.to_timestamp),
                   ('interval', self.interval),
-                 ]
+                  ]
         args = list(self.args.items())
         if with_param:
             args += [with_param]
@@ -197,6 +200,7 @@ class Query:
             params += [("fields", self.fields_original)]
         return urllib.parse.urlencode(params)
 
+
 def collect_fields(cfg, fields, **kwargs):
     """ Collects fields by the given ones, or one of the default ones
         from the configuration. """
@@ -214,11 +218,13 @@ def collect_fields(cfg, fields, **kwargs):
                 fields += additional_fields
     return fields
 
+
 def remove_prefix(text, prefix):
     """ Remove prefix from text if present. """
     if text.startswith(prefix):
         return text[len(prefix):]
     return text
+
 
 if __name__ == '__main__':
     import unittest
@@ -243,7 +249,7 @@ if __name__ == '__main__':
             self.assert_defaults(query,
                                  args={'application_name': 'my-app',
                                        'level': 'WARN'}
-                                )
+                                 )
 
         def test_as_url(self):
             """ Test url conversion. """

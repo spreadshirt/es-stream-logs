@@ -11,6 +11,7 @@ from jinja2 import Template
 from config import Config
 from query import Query
 
+
 class HTMLRenderer:
     """ Renders query result as HTML. """
 
@@ -190,7 +191,7 @@ class HTMLRenderer:
                 val = FieldFormatter().format(fmt, __query=self.query.as_params(),
                                               dc=self.query.datacenter, index=self.query.index,
                                               **hit['_source'])
-            if not field in source:
+            if field not in source:
                 val = '-'
             elif source.get(field, '') is None:
                 val = 'null'
@@ -203,8 +204,8 @@ class HTMLRenderer:
                 if val:
                     fmt = self.config.field_format[field]
                     val = FieldFormatter().format(fmt, __query=self.query.as_params(),
-                            dc=self.query.datacenter, index=self.query.index,
-                            **hit['_source'])
+                                                  dc=self.query.datacenter, index=self.query.index,
+                                                  **hit['_source'])
                     formatted_fields[field] = val
             except (IndexError, KeyError, ValueError):
                 pass
@@ -223,7 +224,7 @@ class HTMLRenderer:
 <tr class="source source-hidden"><td colspan="{{ 1 + len_fields }}"></td></tr>
 """)
         return template.render(source_json=json.dumps(hit['_source']), len_fields=len(self.query.fields),
-                fields=fields, formatted_fields=json.dumps(formatted_fields))
+                               fields=fields, formatted_fields=json.dumps(formatted_fields))
 
     def end(self):
         """ Renders end of results. """
@@ -256,6 +257,7 @@ class HTMLRenderer:
 """)
         return template.render(es_query_json=json.dumps(es_query), class_=class_, width=len(self.query.fields), msg=msg)
 
+
 def nested_get(dct, keys):
     """ Gets keys recursively from dict, e.g. nested_get({test: inner: 42}, ["test", "inner"])
         would return the nested `42`. """
@@ -266,6 +268,7 @@ def nested_get(dct, keys):
             dct = dct[key]
     return dct
 
+
 class FieldFormatter(string.Formatter):
     """ Custom formatter test gets nested dot-separated fields from an object. """
 
@@ -274,6 +277,7 @@ class FieldFormatter(string.Formatter):
         if isinstance(val, dict):
             return DotMap(val)
         return val
+
 
 class DotMap(dict):
     """ A tiny map that allows key access via ".key" syntax. """

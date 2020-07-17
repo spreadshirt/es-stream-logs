@@ -3,6 +3,7 @@ from urllib.parse import unquote, urlparse
 
 import requests
 
+
 def parse(kibana_url: str):
     """ Parses a Kibana url into an es-stream-logs one. """
 
@@ -41,7 +42,7 @@ def parse(kibana_url: str):
     index = index[1]
     if "-*" not in index:
         kibana_base = kibana_url.scheme + "://" + kibana_url.netloc
-        resp = requests.get(kibana_base+"/api/saved_objects/index-pattern/"+index)
+        resp = requests.get(kibana_base + "/api/saved_objects/index-pattern/" + index)
         resp.raise_for_status()
 
         index = resp.json()['attributes']['title']
@@ -60,14 +61,13 @@ def parse(kibana_url: str):
     try:
         while True:
             idx = kibana_query.index(query_marker, idx)
-            idx += len(query_marker)-1
+            idx += len(query_marker) - 1
 
             depth, query = parse_parentheses(kibana_query[idx:])
             print(idx, depth, query)
             if depth == 3:
                 if query[0] == "match":
                     var_name = query[1][0]
-                    var_query = query[1][1]
                     query_spec = dict(map(lambda e: [e[0], e[1].strip("'")], [x.split(":", 2) for x in query[1][1][0].split(",")]))
                     if 'query' not in query_spec:
                         raise Exception(f'no query for "{var_name}"')
@@ -83,14 +83,16 @@ def parse(kibana_url: str):
         url += f"&fields=@timestamp,{fields}"
     return url
 
-def push(obj, l, depth):
+
+def push(obj, levels, depth):
     while depth > 0:
-        l = l[-1]
+        levels = levels[-1]
         depth -= 1
 
     if isinstance(obj, str) and obj[-1] == ":":
         obj = obj[:-1]
-    l.append(obj)
+    levels.append(obj)
+
 
 def parse_parentheses(s):
     groups = []
@@ -118,7 +120,6 @@ def parse_parentheses(s):
 
             else:
                 group += ch
-                #push(char, groups, depth)
     except IndexError:
         pass
 
@@ -127,14 +128,14 @@ def parse_parentheses(s):
     else:
         return max_depth, groups[0]
 
+
 if __name__ == "__main__":
     import sys
 
     for arg in sys.argv[1:]:
         print("parse", arg)
         try:
-            res = kibana_parse(arg)
+            res = parse(arg)
             print(res)
         except Exception as ex:
             print(ex)
-

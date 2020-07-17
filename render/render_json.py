@@ -2,6 +2,7 @@
 
 import json
 
+
 class JSONRenderer:
     """ Renders JSON output. """
 

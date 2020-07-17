@@ -4,11 +4,13 @@ from dataclasses import dataclass
 import json
 from typing import Dict, List
 
+
 @dataclass
 class Endpoint:
     """ Configuration for an elasticsearch endpoint. """
 
     url: str
+
 
 @dataclass
 class DefaultFields:
@@ -25,6 +27,7 @@ class DefaultFields:
             if key in kwargs and val in kwargs[key]:
                 return self.fields
         return None
+
 
 @dataclass
 class Config:
@@ -55,11 +58,13 @@ class Config:
                 return fields.copy()
         return None
 
+
 def from_file(filename):
     """ Parse config from json in filename. """
 
     with open(filename, 'r') as fpp:
         return Config(**json.load(fpp))
+
 
 if __name__ == '__main__':
     CONFIG = from_file('config.json')

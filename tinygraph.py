@@ -2,6 +2,7 @@
 
 import math
 
+
 class Scale:
     """ A Scale maps values from an input domain to an output range.
 
@@ -27,6 +28,7 @@ E10 = math.sqrt(50)
 E5 = math.sqrt(10)
 E2 = math.sqrt(2)
 
+
 def tick_increment(start, stop, count):
     """
     Finds a nice number to step between start and stop for count times.
@@ -50,16 +52,18 @@ def tick_increment(start, stop, count):
         return multiply * math.pow(10, power)
     return -math.pow(10, -power) * multiply
 
+
 MINUTE = 60
 HOUR = 60 * MINUTE
 DAY = 24 * HOUR
 
 TIME_INTERVALS = [
-        1, 5, 15, 30, # seconds
-        1*MINUTE, 5*MINUTE, 15*MINUTE, 30*MINUTE, # minutes
-        1*HOUR, 3*HOUR, 6*HOUR, 12*HOUR, # hours
-        1*DAY, 2*DAY, 7*DAY, # days
+    1, 5, 15, 30,  # seconds
+    1 * MINUTE, 5 * MINUTE, 15 * MINUTE, 30 * MINUTE,  # minutes
+    1 * HOUR, 3 * HOUR, 6 * HOUR, 12 * HOUR,  # hours
+    1 * DAY, 2 * DAY, 7 * DAY,  # days
 ]
+
 
 def time_increment(start_s: int, stop_s: int, count: int):
     """ Finds a nice time increment for count steps between start (in
@@ -75,6 +79,7 @@ def time_increment(start_s: int, stop_s: int, count: int):
             return interval
 
     return ValueError("could not find appropriate interval")
+
 
 def pretty_duration(duration_s: int):
     """ Returns a pretty duration for the one given in seconds, e.g. 1h, 3m, 4d, ..."""

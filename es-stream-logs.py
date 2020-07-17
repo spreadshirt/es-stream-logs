@@ -34,10 +34,12 @@ APP = Flask(__name__)
 ES_USER = os.environ.get('ES_USER', None)
 ES_PASSWORD = os.environ.get('ES_PASSWORD', None)
 
+
 @APP.route('/favicon.ico')
 def favicon_route():
     """ Favicon (search glass). """
     return APP.send_static_file('search.ico')
+
 
 @APP.route('/')
 def index_route():
@@ -152,12 +154,14 @@ GET /logs   - stream logs from elasticsearch
 
     return index.render(queries=CONFIG.queries, highlight_query=highlight_query)
 
+
 def highlight_query(query_url):
     u = urlparse(query_url)
     query = parse_qsl(u.query)
 
     param_tmpl = Template("""<span class="{{ highlight_param(qp) | e }}">{{ qp | e }}={{ qv | e }}</span>""")
     return u.path + "?" + "&".join([param_tmpl.render(highlight_param=highlight_param, qp=qp, qv=qv) for qp, qv in query])
+
 
 def highlight_param(query_param):
     if query_param in ["index", "dc", "from", "to"]:
@@ -166,6 +170,7 @@ def highlight_param(query_param):
         return "low"
     else:
         return ""
+
 
 def nested_get(dct, keys):
     """ Gets keys recursively from dict, e.g. nested_get({test: inner: 42}, ["test", "inner"])
@@ -176,6 +181,7 @@ def nested_get(dct, keys):
         else:
             dct = dct[key]
     return dct
+
 
 def filter_dict(source, fields):
     """ Filters source to only contain keys from fields. """
@@ -190,6 +196,7 @@ def filter_dict(source, fields):
         except (IndexError, KeyError, ValueError):
             pass
     return res
+
 
 def parse_offset(offset):
     """ Parse elastic-search style offset into seconds, e.g. 10s, 1m, 3h, 2d... """
@@ -207,6 +214,7 @@ def parse_offset(offset):
     else:
         raise ValueError(f"could not parse offset '{offset}'")
     return offset_in_s
+
 
 def parse_timestamp(timestamp):
     """ Parse elasticsearch-style timestamp, e.g. now-3h, 2019-09-09T00:00:00Z or epoch_millis. """
@@ -229,6 +237,7 @@ def parse_timestamp(timestamp):
         pass
 
     raise ValueError(f"could not parse timestamp '{timestamp}'")
+
 
 def aggregation_svg(es, query: Query):
     """ Execute aggregation query and render as an SVG. """
@@ -271,7 +280,7 @@ def aggregation_svg(es, query: Query):
     query_params += [('from', query.from_timestamp), ('to', query.to_timestamp)]
     query_str = ", ".join([f"{item[0]}={item[1]}" for item in query_params])
 
-    #num_hits = resp['hits']['total']['value']
+    # num_hits = resp['hits']['total']['value']
     avg_count = 0
 
     if num_results_buckets:
@@ -295,11 +304,11 @@ def aggregation_svg(es, query: Query):
     for idx, bucket in enumerate(num_results_buckets):
         count = bucket['doc_count']
         from_ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(bucket['key'] / 1000))
-        to_ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime((bucket['key']+interval_s*1000) / 1000))
+        to_ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime((bucket['key'] + interval_s * 1000) / 1000))
         label_align = "middle"
         if idx / len(num_results_buckets) < 0.25:
             label_align = "start"
-        elif idx / len(num_results_buckets) > (1-0.25):
+        elif idx / len(num_results_buckets) > (1 - 0.25):
             label_align = "end"
         bucket_data = {
             "count": count,
@@ -333,7 +342,7 @@ def aggregation_svg(es, query: Query):
 
         if query.percentiles_terms:
             percentiles = bucket[query.percentiles_terms]['values']
-            bucket_data['label'] += "\n\n"+" ".join([f"p{int(float(val)) if float(val).is_integer() else val}: {key or 0:.2f}" for val, key in percentiles.items()])
+            bucket_data['label'] += "\n\n" + " ".join([f"p{int(float(val)) if float(val).is_integer() else val}: {key or 0:.2f}" for val, key in percentiles.items()])
 
             bucket_data['percentiles'] = []
             scale_percentile = tinygraph.Scale(1000, (0, max_percentile), (0, 95))
@@ -347,10 +356,10 @@ def aggregation_svg(es, query: Query):
                 percentile = float(percentile)
                 pretty_percentile = int(percentile) if percentile.is_integer() else percentile
                 bucket_data['percentiles'].append({
-                        'pos_y': pos_y,
-                        'name': pretty_percentile,
-                        'value': value,
-                        })
+                    'pos_y': pos_y,
+                    'name': pretty_percentile,
+                    'value': value,
+                })
 
         buckets.append(bucket_data)
 
@@ -493,6 +502,7 @@ def serve_aggregation():
     query = from_request_args(CONFIG, request.args)
     return aggregation_svg(es_client, query)
 
+
 @APP.route('/raw')
 def serve_raw():
     """ Serve raw query result from elasticsearch. """
@@ -508,6 +518,7 @@ def serve_raw():
 
     return Response(json.dumps(resp, indent=2), content_type="application/json")
 
+
 @APP.route('/query')
 def serve_query():
     """ Return the query that would be sent to elasticsearch. """
@@ -516,6 +527,7 @@ def serve_query():
     es_query = to_raw_es_query(query)
 
     return Response(json.dumps(es_query, indent=2), content_type="application/json")
+
 
 @APP.route('/kibana')
 def serve_kibana():
@@ -544,6 +556,7 @@ def serve_kibana():
 
     return redirect("/logs?" + query, code=303)
 
+
 def to_raw_es_query(query):
     es_query = query.to_elasticsearch(query.from_timestamp, query.max_results)
     if query.aggregation_terms or query.percentiles_terms:
@@ -563,6 +576,7 @@ def to_raw_es_query(query):
 
     return es_query
 
+
 def parse_doc_timestamp(timestamp: str):
     """ Parse the timestamp of an elasticsearch document. """
     try:
@@ -571,11 +585,13 @@ def parse_doc_timestamp(timestamp: str):
         parsed = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
     return parsed
 
+
 def remove_prefix(text, prefix):
     """ Remove prefix from text if present. """
     if text.startswith(prefix):
         return text[len(prefix):]
     return text
+
 
 def collect_fields(cfg, fields, **kwargs):
     """ Collects fields by the given ones, or one of the default ones
@@ -593,6 +609,7 @@ def collect_fields(cfg, fields, **kwargs):
             if additional_fields:
                 fields += additional_fields
     return fields
+
 
 def stream_logs(es, renderer, query: Query):
     """ Contruct query and stream logs given the elasticsearch client and parameters. """
@@ -653,13 +670,13 @@ use &max_results=N or &max_results=all to see more results."""
                 yield renderer.end()
                 return
 
-            timestamp = int(parse_doc_timestamp(hit['_source']['@timestamp']).timestamp()*1000)
+            timestamp = int(parse_doc_timestamp(hit['_source']['@timestamp']).timestamp() * 1000)
             if isinstance(last_timestamp, str):
                 last_timestamp = timestamp
             else:
                 if query.sort == "asc":
                     last_timestamp = max(timestamp, last_timestamp)
-                else: # desc
+                else:  # desc
                     last_timestamp = min(timestamp, last_timestamp)
 
             if query.fields:
@@ -676,6 +693,7 @@ use &max_results=N or &max_results=all to see more results."""
         yield " "
 
         time.sleep(1)
+
 
 def es_client_from(req):
     """ Create elastic search client from request. """
@@ -698,6 +716,7 @@ def es_client_from(req):
 
     return es_client, None
 
+
 @APP.route('/logs')
 def serve_logs():
     """ Serve logs. """
@@ -718,9 +737,9 @@ def serve_logs():
             "img-src 'self'",    # favicon
             "script-src 'self'",
             "style-src 'self'",
-            "object-src 'self'", # histogram
+            "object-src 'self'",  # histogram
             "frame-src 'self'",  # histogram in chromium
-            ]
+        ]
         headers['Content-Security-Policy'] = "; ".join(csp)
     elif fmt == "json":
         renderer = render.JSONRenderer()
@@ -729,9 +748,11 @@ def serve_logs():
         raise Exception(f"unknown output format '{fmt}'")
 
     return Response(stream_logs(es_client, renderer, query), headers=headers,
-                    content_type=content_type+'; charset=utf-8')
+                    content_type=content_type + '; charset=utf-8')
+
 
 CONFIG = None
+
 
 def run_app():
     """ Run application. """
@@ -751,6 +772,7 @@ def run_app():
     CONFIG = config.from_file(config_file)
 
     APP.run(host=host, port=port, threaded=True)
+
 
 if __name__ == "__main__":
     run_app()
