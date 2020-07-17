@@ -18,10 +18,8 @@ def parse(kibana_url: str):
     print(kibana_query)
 
     timestamp = re.search(r"from:([^,]+),(mode:[^,]+,)?to:([^,)]+)", kibana_query)
-    if not timestamp:
-        raise Exception("missing from or to")
-    from_timestamp = timestamp[1]
-    to_timestamp = timestamp[3]
+    from_timestamp = timestamp[1] if timestamp else 'now-15m'
+    to_timestamp = timestamp[3] if timestamp else 'now'
 
     interval = re.search(r"interval:([^,]+)", kibana_query)
     if not interval:
