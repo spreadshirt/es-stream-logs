@@ -7,6 +7,9 @@ import requests
 def parse(kibana_url: str):
     """ Parses a Kibana url into an es-stream-logs one. """
 
+    if re.search(r"/app/kibana#/discover/\w+-\w+-\w+-\w+-\w+", kibana_url):
+        raise Exception("saved search not supported yet")
+
     if "/goto/" in kibana_url:
         resp = requests.head(kibana_url, allow_redirects=True)
         resp.raise_for_status()
