@@ -641,6 +641,12 @@ def stream_logs(es, renderer, query: Query):
             yield renderer.error(ex, es_query)
             return
 
+        if resp['_shards']['failed']:
+            print("shard failures:", resp['_shards']['failures'])
+            shard_msg = resp['_shards']['failures'][0]
+            yield renderer.error(f"Error: {resp['_shards']['failed']} shards failed: First error: {shard_msg}", es_query)
+            return
+
         if query_count <= 1 and not resp['hits']['hits']:
             yield renderer.warning("Warning: No results matching query (Check details for query)",
                                    es_query)
