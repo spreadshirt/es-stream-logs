@@ -7,15 +7,15 @@ Loads (much) faster than Kibana, queries can be generated easily.
 
 Example queries:
 
-- http://localhost:3028/logs?aggregation_terms=level
-- http://localhost:3028/logs?application_name=api&level=ERROR,WARN&aggregation_terms=level
-- http://localhost:3028/logs?aggregation_terms=status.code&logger_name=TracingServletFilter&application_name=api
-- http://localhost:3028/logs?aggregation_terms=status.code&percentiles_terms=timings.duration&logger_name=TracingServletFilter&application_name=api
-- http://localhost:3028/logs?index=cdn-*&aggregation_terms=status.code
-- http://localhost:3028/logs?index=cdn-*&status.category=5xx&from=now-1d&aggregation_terms=status.code
-- http://localhost:3028/logs?timings.duration=>5000&from=now-1h&fields=,timings.duration
-- http://localhost:3028/aggregation.svg?index=cdn-*&status.category=5xx&from=now-1d&aggregation_terms=status.code
-- http://localhost:3028/raw?index=cdn-*&status.category=5xx&from=now-1d&aggregation_terms=status.code
+- <http://localhost:3028/logs?aggregation_terms=level>
+- <http://localhost:3028/logs?application_name=api&level=ERROR,WARN&aggregation_terms=level>
+- <http://localhost:3028/logs?aggregation_terms=status.code&logger_name=TracingServletFilter&application_name=api>
+- <http://localhost:3028/logs?aggregation_terms=status.code&percentiles_terms=timings.duration&logger_name=TracingServletFilter&application_name=api>
+- <http://localhost:3028/logs?index=cdn-*&aggregation_terms=status.code>
+- <http://localhost:3028/logs?index=cdn-*&status.category=5xx&from=now-1d&aggregation_terms=status.code>
+- <http://localhost:3028/logs?timings.duration=%3E5000&from=now-1h&fields=,timings.duration>
+- <http://localhost:3028/aggregation.svg?index=cdn-*&status.category=5xx&from=now-1d&aggregation_terms=status.code>
+- <http://localhost:3028/raw?index=cdn-*&status.category=5xx&from=now-1d&aggregation_terms=status.code>
 
 See <http://localhost:3028> for complete docs and examples.
 
