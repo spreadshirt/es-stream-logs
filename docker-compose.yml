@@ -1,0 +1,15 @@
+version: '3'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.8.1
+    environment:
+      discovery.type: single-node
+    ports:
+      - "9200:9200"
+  ui:
+    image: spreadshirt/es-stream-logs
+    depends_on:
+      - elasticsearch
+    ports:
+      - "3028:3028"
+    command: sh -c "sed -i 's/localhost:9200/elasticsearch:9200/' /app/config.json && python /app/es-stream-logs.py /app/config.json 0.0.0.0 3028"

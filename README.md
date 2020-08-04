@@ -19,6 +19,29 @@ Example queries:
 
 See <http://localhost:3028> for complete docs and examples.
 
+## Running
+
+There are several ways to run es-stream-logs:
+
+1. `docker-compose`
+    - run `docker-compose up`
+2. or using Python's `venv`
+    - run `python -m venv venv`
+    - install dependencies with `./venv/bin/pip install -r requirements.txt`
+    - start the server with `./venv/bin/python es-stream-logs.py`
+    - you also need an elasticsearch instance, which you can run using
+      docker: `docker run -p 9200:9200 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.8.1`
+
+And then visit <http://localhost:3028>.  You can also run
+`./demo-setup.sh` to create an index and insert some test data.
+
+It is also possible to use the docker container directly, and adjusting
+`config.json` to point to your Elasticsearch instance:
+
+```
+docker run -it --rm -v $PWD/config.json:/app/config.json spreadshirt/es-stream-logs
+```
+
 ## Configuration
 
 See [config.json](./config.json) for examples of all of the following.
