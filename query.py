@@ -1,5 +1,7 @@
 """ This module handles query parsing and translation to elasticsearch. """
 
+import fastapi
+import starlette.datastructures
 import urllib.parse
 
 from config import Config
@@ -7,25 +9,18 @@ from config import Config
 ONLY_ONCE_ARGUMENTS = ["from", "to", "dc", "index", "interval"]
 
 
-def from_request_args(config, args):
+def from_request(config, request: fastapi.Request):
     """ Create query from request args. """
-    args = consolidate_args(args, ONLY_ONCE_ARGUMENTS)
-    return Query(config, **args)
+    return Query(config, **flatten_params(request.query_params))
 
 
-def consolidate_args(args, exceptions=None):
-    """ Consolidates arguments from a werkzeug.datastructures.MultiDict
-        into our internal comma-separated format. """
-    res = {}
-    for key, values in args.to_dict(flat=False).items():
+def flatten_params(query_params: starlette.datastructures.QueryParams):
+    params = {}
+    for key in query_params.keys():
         if key in ["fmt"]:
             continue
-
-        if exceptions and key in exceptions:
-            res[key] = values[-1]
-        else:
-            res[key] = ','.join(values)
-    return res
+        params[key] = ",".join(query_params.getlist(key))
+    return params
 
 
 class Query:

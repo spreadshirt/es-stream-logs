@@ -7,42 +7,48 @@ query than Kibana, at least for ad-hoc queries.
 
 """
 
+import asyncio
 from datetime import datetime
 import json
 import os
 import random
-import sys
 import time
 from urllib.parse import urlparse, parse_qsl
 
-from elasticsearch import Elasticsearch
+from elasticsearch import AsyncElasticsearch
 import elasticsearch
-
-from flask import Flask, Response, abort, redirect, request
-
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from jinja2 import Template
 
 # project internal modules
 import config
 import kibana
-from query import Query, from_request_args
+from query import Query, from_request
 import render
 import tinygraph
 
-APP = Flask(__name__)
+
+app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 ES_USER = os.environ.get('ES_USER', None)
 ES_PASSWORD = os.environ.get('ES_PASSWORD', None)
 
 
-@APP.route('/favicon.ico')
-def favicon_route():
+favicon_static = StaticFiles(directory="static")
+
+
+@app.get('/favicon.ico')
+async def favicon_route(request: Request):
     """ Favicon (search glass). """
-    return APP.send_static_file('search.ico')
+    return await favicon_static.get_response("search.ico", request.scope)
 
 
-@APP.route('/')
-def index_route():
+@app.get('/', response_class=HTMLResponse)
+async def index_route():
     """ GET / """
 
     index = Template(r"""
@@ -152,7 +158,8 @@ GET /logs   - stream logs from elasticsearch
 </body>
 </html>""")
 
-    return index.render(queries=CONFIG.queries, highlight_query=highlight_query)
+    config = await get_config()
+    return index.render(queries=config.queries, highlight_query=highlight_query)
 
 
 def highlight_query(query_url):
@@ -239,7 +246,7 @@ def parse_timestamp(timestamp):
     raise ValueError(f"could not parse timestamp '{timestamp}'")
 
 
-def aggregation_svg(es, query: Query):
+async def aggregation_svg(es, request: Request, query: Query):
     """ Execute aggregation query and render as an SVG. """
 
     is_internal = "/logs" in request.headers.get('Referer', '')
@@ -266,7 +273,7 @@ def aggregation_svg(es, query: Query):
 
     es_query = query.to_elasticsearch(query.from_timestamp)
     es_query["aggs"] = query.aggregation("num_results", interval)
-    resp = es.search(index=query.index, body=es_query, request_timeout=query.timeout)
+    resp = await es.search(index=query.index, body=es_query, request_timeout=query.timeout)
 
     total_count = 0
     max_count = 0
@@ -444,7 +451,7 @@ g:hover text {
 
 </svg>
 """)
-    return Response(template.render(list=list, width=width, height=height, query_title=query_title, bucket_width=bucket_width, buckets=buckets, percentile_lines=percentile_lines), content_type="image/svg+xml")
+    return Response(content=template.render(list=list, width=width, height=height, query_title=query_title, bucket_width=bucket_width, buckets=buckets, percentile_lines=percentile_lines), media_type="image/svg+xml")
 
 
 class ColorMapper():
@@ -491,51 +498,51 @@ class ColorMapper():
         return self.map[value]
 
 
-@APP.route('/aggregation.svg')
-def serve_aggregation():
+@app.get('/aggregation.svg')
+async def serve_aggregation(request: Request):
     """ Serve aggregation view. """
 
-    es_client, resp = es_client_from(request)
+    es_client, resp = await es_client_from(request)
     if resp:
         return resp
 
-    query = from_request_args(CONFIG, request.args)
-    return aggregation_svg(es_client, query)
+    query = from_request(await get_config(), request)
+    return await aggregation_svg(es_client, request, query)
 
 
-@APP.route('/raw')
-def serve_raw():
+@app.get('/raw')
+async def serve_raw(request: Request):
     """ Serve raw query result from elasticsearch. """
 
-    es_client, resp = es_client_from(request)
+    es_client, resp = await es_client_from(request)
     if resp:
         return resp
 
-    query = from_request_args(CONFIG, request.args)
+    query = from_request(await get_config(), request)
     es_query = to_raw_es_query(query)
 
-    resp = es_client.search(index=query.index, body=es_query, request_timeout=query.timeout)
+    resp = await es_client.search(index=query.index, body=es_query, request_timeout=query.timeout)
 
-    return Response(json.dumps(resp, indent=2), content_type="application/json")
+    return Response(json.dumps(resp, indent=2), media_type="application/json")
 
 
-@APP.route('/query')
-def serve_query():
+@app.get('/query')
+async def serve_query(request: Request):
     """ Return the query that would be sent to elasticsearch. """
 
-    query = from_request_args(CONFIG, request.args)
+    query = from_request(await get_config(), request)
     es_query = to_raw_es_query(query)
 
-    return Response(json.dumps(es_query, indent=2), content_type="application/json")
+    return Response(json.dumps(es_query, indent=2), media_type="application/json")
 
 
-@APP.route('/kibana')
-def serve_kibana():
+@app.get('/kibana')
+def serve_kibana(request: Request):
     """ Parse a Kibana url and redirect to the es-stream-logs version. """
 
     kibana_url = request.args.get('url', None)
     if not kibana_url:
-        abort(400, "missing url parameter")
+        return Response(status_code=400, content="missing url parameter")
 
     # guess dc from url
     dc = None
@@ -547,14 +554,14 @@ def serve_kibana():
     if not dc:
         dc = request.args.get('dc', None)
     if not dc:
-        abort(400, "missing dc parameter")
+        return Response(status_code=400, content="missing dc parameter")
 
     try:
         query = kibana.parse(kibana_url)
     except Exception as ex:
-        abort(400, f"could not parse kibana url: {ex}")
+        return Response(status_code=400, content=f"could not parse kibana url: {ex}")
 
-    return redirect("/logs?" + query, code=303)
+    return RedirectResponse("/logs?" + query, status_code=303)
 
 
 def to_raw_es_query(query):
@@ -611,7 +618,7 @@ def collect_fields(cfg, fields, **kwargs):
     return fields
 
 
-def stream_logs(es, renderer, query: Query):
+async def stream_logs(es, renderer, query: Query):
     """ Contruct query and stream logs given the elasticsearch client and parameters. """
 
     last_timestamp = query.from_timestamp
@@ -626,7 +633,7 @@ def stream_logs(es, renderer, query: Query):
         try:
             query_count += 1
             es_query = query.to_elasticsearch(last_timestamp)
-            resp = es.search(index=query.index, body=es_query, request_timeout=query.timeout)
+            resp = await es.search(index=query.index, body=es_query, request_timeout=query.timeout)
             if query_count == 1:
                 results_total = resp['hits']['total']['value']
                 took_ms = resp['took']
@@ -634,7 +641,7 @@ def stream_logs(es, renderer, query: Query):
         except elasticsearch.ConnectionTimeout as ex:
             print(ex)
             yield renderer.error(ex, es_query)
-            time.sleep(1)
+            await asyncio.sleep(1)
             continue
         except elasticsearch.ElasticsearchException as ex:
             print(ex)
@@ -650,7 +657,7 @@ def stream_logs(es, renderer, query: Query):
         if query_count <= 1 and not resp['hits']['hits']:
             yield renderer.warning("Warning: No results matching query (Check details for query)",
                                    es_query)
-            time.sleep(1)
+            await asyncio.sleep(1)
             continue
 
         all_hits_seen = True
@@ -698,45 +705,24 @@ use &max_results=N or &max_results=all to see more results."""
         # print space to try and keep connection open
         yield " "
 
-        time.sleep(1)
+        await asyncio.sleep(1)
 
 
-def es_client_from(req):
-    """ Create elastic search client from request. """
-
-    if ES_USER is None or ES_PASSWORD is None:
-        if not req.authorization:
-            resp = Response('Could not verify your access level for that URL.\n'
-                            'You have to login with proper credentials',
-                            401,
-                            {'WWW-Authenticate': 'Basic realm="Login with  LDAP credentials"'})
-            return None, resp
-
-    datacenter = req.args.get('dc') or CONFIG.default_endpoint
-    if datacenter not in CONFIG.endpoints:
-        abort(400, f"unknown datacenter '{datacenter}'")
-
-    es_client = Elasticsearch([CONFIG.endpoints[datacenter].url],
-                              http_auth=(ES_USER or req.authorization.username,
-                                         ES_PASSWORD or req.authorization.password))
-
-    return es_client, None
-
-
-@APP.route('/logs')
-def serve_logs():
+@app.get('/logs')
+async def serve_logs(request: Request):
     """ Serve logs. """
-    es_client, resp = es_client_from(request)
+    es_client, resp = await es_client_from(request)
     if resp:
         return resp
 
     headers = {}
 
-    query = from_request_args(CONFIG, request.args)
+    config = await get_config()
+    query = from_request(config, request)
 
-    fmt = request.args.get("fmt", "html")
+    fmt = request.query_params.get("fmt", "html")
     if fmt == "html":
-        renderer = render.HTMLRenderer(CONFIG, query)
+        renderer = render.HTMLRenderer(config, query)
         content_type = "text/html"
         csp = [
             "default-src 'none'",
@@ -753,32 +739,39 @@ def serve_logs():
     else:
         raise Exception(f"unknown output format '{fmt}'")
 
-    return Response(stream_logs(es_client, renderer, query), headers=headers,
-                    content_type=content_type + '; charset=utf-8')
+    return StreamingResponse(stream_logs(es_client, renderer, query),
+                             headers=headers,
+                             media_type=content_type)
 
 
-CONFIG = None
+async def es_client_from(request: Request):
+    """ Create elastic search client from request. """
+
+    # if ES_USER is None or ES_PASSWORD is None:
+    #     if not req.authorization:
+    #         resp = Response(content='Could not verify your access level for that URL.\n'
+    #                         'You have to login with proper credentials',
+    #                         status_code=401,
+    #                         headers={'WWW-Authenticate': 'Basic realm="Login with  LDAP credentials"'})
+    #         return None, resp
+
+    config = await get_config()
+    datacenter = request.query_params.get('dc') or config.default_endpoint
+    if datacenter not in config.endpoints:
+        return None, Response(status_code=400, content=f"unknown datacenter '{datacenter}'")
+
+    es_client = AsyncElasticsearch([config.endpoints[datacenter].url],
+                                   http_auth=(ES_USER,  # or req.authorization.username,
+                                              ES_PASSWORD))  # or req.authorization.password))
+
+    return es_client, None
 
 
-def run_app():
-    """ Run application. """
+CONFIG = config.from_file(os.environ.get('CONFIG', 'config.json'))
 
-    config_file = 'config.json'
-    host = 'localhost'
-    port = 3028
-    if len(sys.argv) > 1:
-        config_file = sys.argv[1]
-    if len(sys.argv) > 2:
-        host = sys.argv[2]
-    if len(sys.argv) > 3:
-        port = int(sys.argv[3])
 
-    print(f"Loading config from '{config_file}'")
+async def get_config():
+    """ Loads config from scratch or cached. """
     global CONFIG
-    CONFIG = config.from_file(config_file)
 
-    APP.run(host=host, port=port, threaded=True)
-
-
-if __name__ == "__main__":
-    run_app()
+    return CONFIG
