@@ -47,7 +47,7 @@ class Query:
         self.percentiles = list(map(float, kwargs.pop("percentiles", "50,90,99").split(",")))
         self.percentiles_str = ",".join(map(lambda p: str(int(p) if p.is_integer() else p), self.percentiles))
 
-        self.max_results = kwargs.pop("max_results", 5000)
+        self.max_results = kwargs.pop("max_results", 500)
         if self.max_results != "all":
             self.max_results = int(self.max_results)
 
