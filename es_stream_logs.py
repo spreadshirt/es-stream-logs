@@ -8,6 +8,8 @@ query than Kibana, at least for ad-hoc queries.
 """
 
 import asyncio
+import base64
+import binascii
 from datetime import datetime
 import json
 import os
@@ -15,12 +17,14 @@ import random
 import time
 from urllib.parse import urlparse, parse_qsl
 
+from dotenv import load_dotenv
 from elasticsearch import AsyncElasticsearch
 import elasticsearch
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from jinja2 import Template
+from starlette.authentication import AuthenticationError
 
 # project internal modules
 import config
@@ -34,6 +38,7 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
+load_dotenv()
 ES_USER = os.environ.get('ES_USER', None)
 ES_PASSWORD = os.environ.get('ES_PASSWORD', None)
 
@@ -747,13 +752,26 @@ async def serve_logs(request: Request):
 async def es_client_from(request: Request):
     """ Create elastic search client from request. """
 
-    # if ES_USER is None or ES_PASSWORD is None:
-    #     if not req.authorization:
-    #         resp = Response(content='Could not verify your access level for that URL.\n'
-    #                         'You have to login with proper credentials',
-    #                         status_code=401,
-    #                         headers={'WWW-Authenticate': 'Basic realm="Login with  LDAP credentials"'})
-    #         return None, resp
+    username, password = ES_USER, ES_PASSWORD
+
+    if username is None or password is None:
+        if "Authorization" not in request.headers:
+            resp = Response(content='Could not verify your access level for that URL.\n'
+                            'You have to login with proper credentials',
+                            status_code=401,
+                            headers={'WWW-Authenticate': 'Basic realm="Login with  LDAP credentials"'})
+            return None, resp
+        else:
+            auth = request.headers["Authorization"]
+            try:
+                scheme, credentials = auth.split()
+                if scheme.lower() != 'basic':
+                    return
+                decoded = base64.b64decode(credentials).decode("ascii")
+            except (ValueError, UnicodeDecodeError, binascii.Error) as ex:
+                raise AuthenticationError('Invalid basic auth credentials', ex)
+
+            username, _, password = decoded.partition(":")
 
     config = await get_config()
     datacenter = request.query_params.get('dc') or config.default_endpoint
@@ -761,8 +779,7 @@ async def es_client_from(request: Request):
         return None, Response(status_code=400, content=f"unknown datacenter '{datacenter}'")
 
     es_client = AsyncElasticsearch([config.endpoints[datacenter].url],
-                                   http_auth=(ES_USER,  # or req.authorization.username,
-                                              ES_PASSWORD))  # or req.authorization.password))
+                                   http_auth=(username, password))
 
     return es_client, None
 

@@ -4,9 +4,8 @@ import json
 import string
 
 import elasticsearch
-from flask import escape
 
-from jinja2 import Template
+from jinja2 import Template, escape
 
 from config import Config
 from query import Query
