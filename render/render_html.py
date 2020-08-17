@@ -25,7 +25,7 @@ class HTMLRenderer:
         aggregation_url = self.query.as_url('/aggregation.svg')
         template = Template(r"""
 <!doctype html>
-<html>
+<html lang="en">
 <head>
     <link rel="stylesheet" href="/static/pretty.css" />
 </head>
@@ -214,10 +214,10 @@ class HTMLRenderer:
 <tr class="row" data-source="{{ source_json | e }}" data-formatted-fields="{{ formatted_fields | e }}">
     <td class="toggle-expand">+</td>
 {% for field, val in fields.items() %}
-    <td data-field="{{ field | e }}" class="field-{{ field | e }}">
+    <td data-field="{{ field | e }}">
         <div class="field-container">{{ val }}</div>
-        <a class="filter filter-include" title="Filter for results matching value" href="#">🔎</span>
-        <a class="filter filter-exclude" title="Exclude results matching value" href="#">🗑</span>
+        <a class="filter filter-include" title="Filter for results matching value" href="#">🔎</a>
+        <a class="filter filter-exclude" title="Exclude results matching value" href="#">🗑</a>
     </td>
 {% endfor %}
 </tr>

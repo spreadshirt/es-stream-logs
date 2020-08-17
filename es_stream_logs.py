@@ -53,7 +53,7 @@ async def index_route():
 
     index = Template(r"""
 <!doctype html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <title>Stream logs!</title>
