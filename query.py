@@ -11,15 +11,19 @@ ONLY_ONCE_ARGUMENTS = ["from", "to", "dc", "index", "interval"]
 
 def from_request(config, request: fastapi.Request):
     """ Create query from request args. """
-    return Query(config, **flatten_params(request.query_params))
+    return Query(config, **flatten_params(request.query_params, exceptions=ONLY_ONCE_ARGUMENTS))
 
 
-def flatten_params(query_params: starlette.datastructures.QueryParams):
+def flatten_params(query_params: starlette.datastructures.QueryParams, exceptions=None):
     params = {}
     for key in query_params.keys():
         if key in ["fmt"]:
             continue
-        params[key] = ",".join(query_params.getlist(key))
+
+        if exceptions and key in exceptions:
+            params[key] = query_params.getlist(key)[-1]
+        else:
+            params[key] = ",".join(query_params.getlist(key))
     return params
 
 
