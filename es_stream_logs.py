@@ -638,11 +638,13 @@ async def stream_logs(es, renderer, query: Query):
         try:
             query_count += 1
             es_query = query.to_elasticsearch(last_timestamp)
+            query_start = time.time()
             resp = await es.search(index=query.index, body=es_query, request_timeout=query.timeout)
+            took_ms = int((time.time() - query_start) * 1000)
             if query_count == 1:
                 results_total = resp['hits']['total']['value']
-                took_ms = resp['took']
-                yield renderer.num_results(results_total, took_ms)
+                took_es_ms = resp['took']
+                yield renderer.num_results(results_total, took_ms, took_es_ms)
         except elasticsearch.ConnectionTimeout as ex:
             print(ex)
             yield renderer.error(ex, es_query)

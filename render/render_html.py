@@ -164,13 +164,10 @@ class HTMLRenderer:
 
         return template.render(map=map, str=str, len=len, min=min, aggregation_url=aggregation_url, fields=fields, datacenters=datacenters, query=self.query, indices=self.config.indices, sort_orders=sort_orders)
 
-    def num_results(self, results_total, took_ms):
+    def num_results(self, results_total, took_ms, took_es_ms):
         """ Render info about number of results. """
 
-        return f"""<tr id="num-results"
-    data-results-total="{results_total}"
-    data-took-ms="{took_ms}">
-</tr>"""
+        return f"""<tr id="num-results" data-results-total="{results_total}" data-took-ms="{took_ms}" data-took-es-ms="{took_es_ms}"></tr>"""
 
     def result(self, hit, source):
         """ Renders a single result. """

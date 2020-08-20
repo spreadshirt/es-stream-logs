@@ -6,10 +6,11 @@ window.setInterval(function() {
     if (numResultsEl) {
         let resultsTotal = parseInt(numResultsEl.dataset['resultsTotal']);
         let tookMs = parseInt(numResultsEl.dataset['tookMs']);
-        numHitsMsg += ` of ${resultsTotal.toLocaleString()} results (took ${tookMs}ms)`;
+        let tookEsMs = parseInt(numResultsEl.dataset['tookEsMs']);
+        numHitsMsg += ` of ${resultsTotal.toLocaleString()} results (took ${tookMs}ms total, es ${tookEsMs}ms)`;
     }
     numHitsEl.textContent = numHitsMsg;
-}, 1000);
+}, 500);
 
 var histogramContainer = document.getElementById("histogram_container");
 var histogramEl = document.getElementById("histogram");
