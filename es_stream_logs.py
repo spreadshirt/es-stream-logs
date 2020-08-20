@@ -779,7 +779,8 @@ async def es_client_from(request: Request):
         return None, Response(status_code=400, content=f"unknown datacenter '{datacenter}'")
 
     es_client = AsyncElasticsearch([config.endpoints[datacenter].url],
-                                   http_auth=(username, password))
+                                   http_auth=(username, password),
+                                   http_compress=True)
 
     return es_client, None
 
