@@ -26,6 +26,9 @@ class HTMLRenderer:
 <!doctype html>
 <html lang="en">
 <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ "".join(query.as_params()) | e }} - es-stream-logs</title>
     <link rel="stylesheet" href="/static/pretty.css" />
 </head>
 <body>
