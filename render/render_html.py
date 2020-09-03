@@ -214,7 +214,7 @@ class HTMLRenderer:
     <td class="toggle-expand">+</td>
 {% for field, val in fields.items() %}
     <td data-field="{{ field | e }}">
-        <div class="field-container">{{ val }}</div>
+        <span class="field-container">{{ val }}</span>
         <a class="filter filter-include" title="Filter for results matching value" href="#">🔎</a>
         <a class="filter filter-exclude" title="Exclude results matching value" href="#">🗑</a>
     </td>
