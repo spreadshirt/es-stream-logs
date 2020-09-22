@@ -154,7 +154,8 @@ class HTMLRenderer:
         fields = {}
         for field in self.query.fields:
             escaped_field = escape(field)
-            remove_link = self.query.as_url('/logs') + "&fields=" + ",".join(filter(lambda f: f != field, self.query.fields))
+            self.query.fields_original = ",".join(filter(lambda f: f != field, self.query.fields))
+            remove_link = self.query.as_url('/logs')
             fields[escaped_field] = remove_link
 
         datacenters = {}
