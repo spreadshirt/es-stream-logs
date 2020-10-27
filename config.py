@@ -23,9 +23,8 @@ class DefaultFields:
         """ Checks if this definition matches the query given in kwargs,
         and returns the assigned fields if so. """
 
-        for key, val in self.match_params.items():
-            if key in kwargs and val in kwargs[key]:
-                return self.fields
+        if all([key in kwargs and val in kwargs[key] for key, val in self.match_params.items()]):
+            return self.fields
         return None
 
 
