@@ -191,6 +191,8 @@ class Query:
         if self.percentiles_terms and not ("percentiles_terms", self.percentiles_terms) == without_param:
             params += [('percentiles_terms', self.percentiles_terms),
                        ('percentiles', ",".join(map(str, self.percentiles)))]
+        if self.sort != "asc":
+            params += [('sort', self.sort)]
         if self.interval != "auto":
             params += [('interval', self.interval)]
         if self.query_string:
