@@ -156,7 +156,7 @@ class Query:
             name: {
                 "date_histogram": {
                     "field": "@timestamp",
-                    "interval": interval,
+                    "fixed_interval": interval,
                     "time_zone": "UTC",
                     "min_doc_count": 1,
                 },
