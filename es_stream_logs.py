@@ -132,6 +132,7 @@ GET /logs   - stream logs from elasticsearch
 
     - <strong>aggregation_terms</strong>: count number of messages per term, e.g. `aggregation_terms=level` to aggregate per log level.
       each term gets a unique color.  some special colors are used for http status codes and log levels.
+      note that some fields require a '.keyword' suffix to work, e.g. `aggregation_terms=category.keyword`
     - <strong>aggregation_size</strong>: how many terms to aggregate, default is `5`.
 
     - <strong>percentiles_terms</strong>: collect percentiles for a field, e.g. `percentiles_terms=duration`.
