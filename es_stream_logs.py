@@ -529,7 +529,8 @@ async def serve_raw(request: Request):
 
     resp = await es_client.search(index=query.index, body=es_query, request_timeout=query.timeout)
 
-    return Response(json.dumps(resp, indent=2), media_type="application/json")
+    headers = {"Access-Control-Allow-Origin": "*"}
+    return Response(json.dumps(resp, indent=2), headers=headers, media_type="application/json")
 
 
 @app.get('/query')
@@ -539,7 +540,8 @@ async def serve_query(request: Request):
     query = from_request(await get_config(), request)
     es_query = to_raw_es_query(query)
 
-    return Response(json.dumps(es_query, indent=2), media_type="application/json")
+    headers = {"Access-Control-Allow-Origin": "*"}
+    return Response(json.dumps(es_query, indent=2), headers=headers, media_type="application/json")
 
 
 @app.get('/kibana')
@@ -744,6 +746,7 @@ async def serve_logs(request: Request):
     elif fmt == "json":
         renderer = render.JSONRenderer()
         content_type = "application/json"
+        headers["Access-Control-Allow-Origin"] = "*"
     else:
         raise Exception(f"unknown output format '{fmt}'")
 
