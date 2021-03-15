@@ -31,8 +31,8 @@ body {
     padding: 0.5ex;
 
     position: absolute;
-    bottom: -0.5em;
-    right: 0;
+    bottom: -1.5em;
+    right: -1em;
 }
 
 #query .field-filter:hover .field-actions {
