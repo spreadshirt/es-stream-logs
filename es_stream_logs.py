@@ -156,7 +156,7 @@ GET /logs   - stream logs from elasticsearch
         To add fields to the default ones, use `fields=,additional-field`.
 
     - <strong>timeout</strong>: elasticsearch timeout in seconds, default is `10` seconds.
-    - <strong>max_results</strong>: maximum results to load in html view, default is `5000`.
+    - <strong>max_results</strong>: maximum results to load in html view, default is `500`.
 
     - <strong>fmt</strong>: "html" or "json"
       defaults to "html", "json" outputs one log entry per line as a json object</pre>
