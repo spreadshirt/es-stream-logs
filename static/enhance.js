@@ -186,7 +186,11 @@ document.body.addEventListener('click', function(ev) {
 
     if (ev.target.classList.contains("filter")) {
         let key = ev.target.parentElement.dataset['field'];
-        let value = ev.target.parentElement.firstElementChild.textContent;
+        // either span.field-container content or the first element of that for trace links
+        // and other elements that have generated more content.  bit of a hack.
+        let valueEl = ev.target.parentElement.firstElementChild.firstElementChild || ev.target.parentElement.firstElementChild;
+        let value = valueEl.textContent;
+        ev.preventDefault(); // sometimes needed to actually redirect?
         addFilter(key, value, ev.target.classList.contains("filter-exclude"), redirect = true);
         return;
     }
