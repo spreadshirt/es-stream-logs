@@ -52,7 +52,7 @@ class FixVivaldiQueryEncoding(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next) -> Response:
         qs = request.scope['query_string']
-        if qs:
+        if qs and b';' in qs:
             qs = qs.decode("latin-1").replace(";", "%3B")
             request.scope['query_string'] = qs.encode("latin-1")
             request._query_params = QueryParams(qs)
