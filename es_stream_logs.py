@@ -25,6 +25,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response, Streamin
 from fastapi.staticfiles import StaticFiles
 from jinja2 import Template
 from starlette.authentication import AuthenticationError
+from starlette.datastructures import QueryParams
+from starlette.middleware.base import BaseHTTPMiddleware
 
 # project internal modules
 import config
@@ -34,7 +36,32 @@ import render
 import tinygraph
 
 
+class FixVivaldiQueryEncoding(BaseHTTPMiddleware):
+    """
+    Vivaldi does query encoding differently from other browsers, not
+    encoding semicolons anymore when they are set via forms and
+    other ways.
+
+    We work around this by re-encoding all query strings and forcing
+    the encoding of all semicolons in the query string manually
+    before the query string is then parsed into a datastructure.
+    """
+
+    def __init__(self, app) -> None:
+        super().__init__(app)
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        qs = request.scope['query_string']
+        if qs:
+            qs = qs.decode("latin-1").replace(";", "%3B")
+            request.scope['query_string'] = qs.encode("latin-1")
+            request._query_params = QueryParams(qs)
+        response = await call_next(request)
+        return response
+
+
 app = FastAPI()
+app.add_middleware(FixVivaldiQueryEncoding)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
