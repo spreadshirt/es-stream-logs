@@ -89,6 +89,8 @@ let completions = {
         for (let i = this.rowsScanned; i < rows.length; i++) {
             let source = JSON.parse(rows[i].dataset['source']);
             let flatSource = flattenObject({}, "", source);
+            flatSource["aggregation_terms"] = null;
+            flatSource["percentiles_terms"] = null;
             Object.entries(flatSource).forEach(([field, value]) => {
                 if (!this.fieldValues.has(field)) {
                     this.fieldValues.set(field, new Set());
