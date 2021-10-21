@@ -97,10 +97,16 @@ let completions = {
                     nameCompletionsEl.appendChild(makeElement("option", {
                         "value": field,
                     }, field));
+                    nameCompletionsEl.appendChild(makeElement("option", {
+                        "value": "-" + field,
+                    }, "-" + field));
                    if (typeof value == "string") {
                        nameCompletionsEl.appendChild(makeElement("option", {
                            "value": field + ".keyword",
                        }, field + ".keyword"));
+                       nameCompletionsEl.appendChild(makeElement("option", {
+                           "value": "-" + field + ".keyword",
+                       }, "-" + field + ".keyword"));
                    }
                 }
 
@@ -166,7 +172,11 @@ let newFieldEl = makeElement("span", {"classList": ["field-filter"]},
                 let completionsEl = ev.target.parentElement.querySelector("#field-value-completion");
                 completionsEl.innerHTML = "";
 
-                let values = completions.fieldValues.get(ev.target.name);
+                let fieldName = ev.target.name;
+                if (fieldName.startsWith("-")) {
+                    fieldName = fieldName.substr(1);
+                }
+                let values = completions.fieldValues.get(fieldName);
                 if (values) {
                     values.forEach((value) => {
                         completionsEl.appendChild(makeElement("option", {
