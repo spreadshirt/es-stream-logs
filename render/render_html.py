@@ -1,5 +1,6 @@
 """ Handles HTML rendering """
 
+import copy
 import json
 import string
 
@@ -144,7 +145,7 @@ class HTMLRenderer:
 <tr>
     <td></td>
 {% for field, remove_link in fields.items() %}
-    <td class="field" data-class="field-{{ field }}">{{ field }} <a class="filter" href="{{ remove_link }}">✖</a></td>
+    <td class="field" data-class="field-{{ field }}">{{ field }} <a class="remove-link" href="{{ remove_link }}">✖</a></td>
 {% endfor %}
 </tr>
 </thead>
@@ -154,8 +155,9 @@ class HTMLRenderer:
         fields = {}
         for field in self.query.fields:
             escaped_field = escape(field)
-            remove_link = self.query.as_url('/logs') + "&fields=" + ",".join(filter(lambda f: f != field, self.query.fields))
-            fields[escaped_field] = remove_link
+            remove_query = copy.copy(self.query)
+            remove_query.fields_original = ",".join(filter(lambda f: f != field, self.query.fields))
+            fields[escaped_field] = remove_query.as_url('/logs')
 
         datacenters = {}
         for datacenter in self.config.endpoints.keys():

@@ -103,13 +103,13 @@ td:first-of-type, td:last-of-type {
     padding-right: 0;
 }
 
-thead .filter, .row td .filter, .source tr .filter2 {
+thead td .remove-link, .row td .filter, .source tr .filter2 {
     visibility: hidden;
     margin-left: 1ex;
     cursor: pointer;
 }
 
-thead td:hover .filter, .row td:hover .filter, .source tr:hover .filter2 {
+thead td:hover .remove-link, .row td:hover .filter, .source tr:hover .filter2 {
     visibility: visible;
     text-decoration: none;
     color: black;
