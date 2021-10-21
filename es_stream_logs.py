@@ -15,6 +15,7 @@ import json
 import os
 import random
 import time
+import traceback
 from urllib.parse import urlparse, parse_qsl
 
 from dotenv import load_dotenv
@@ -23,7 +24,7 @@ import elasticsearch
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from jinja2 import Template
+from jinja2 import escape, Template
 from starlette.authentication import AuthenticationError
 from starlette.datastructures import QueryParams
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -540,7 +541,15 @@ async def serve_aggregation(request: Request):
         return resp
 
     query = from_request(await get_config(), request)
-    return await aggregation_svg(es_client, request, query)
+    try:
+        return await aggregation_svg(es_client, request, query)
+    except Exception as ex:
+        traceback.print_exception(type(ex), ex, ex.__traceback__)
+        return Response(status_code=200, media_type="image/svg+xml", content=f"""<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" class="chart" width="1800" height="600" xmlns:xlink="http://www.w3.org/1999/xlink">
+<text x="10" y="14" stroke="red">{escape(type(ex).__name__)}: {escape(ex)}</text>
+</svg>
+""")
 
 
 @app.get('/raw')
