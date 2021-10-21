@@ -157,6 +157,12 @@ let newFieldEl = makeElement("span", {"classList": ["field-filter"]},
             "classList": ["field-value"],
             "style": "display: none",
             "onfocus": function(ev) {
+                // use field names as completion for aggregation and percentiles special fields
+                if (ev.target.name == "aggregation_terms" || ev.target.name == "percentiles_terms") {
+                    ev.target.setAttribute("list", "field-name-completion");
+                    return;
+                }
+
                 let completionsEl = ev.target.parentElement.querySelector("#field-value-completion");
                 completionsEl.innerHTML = "";
 
