@@ -71,6 +71,10 @@ ES_USER = os.environ.get('ES_USER', None)
 ES_PASSWORD = os.environ.get('ES_PASSWORD', None)
 
 
+os.environ['TZ'] = 'UTC'
+time.tzset()
+
+
 favicon_static = StaticFiles(directory="static")
 
 
