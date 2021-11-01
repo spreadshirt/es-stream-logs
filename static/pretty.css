@@ -115,6 +115,11 @@ thead td:hover .remove-link, .row td:hover .filter, .source tr:hover .filter2 {
     color: black;
 }
 
+.source tr input[type=checkbox] {
+	margin-left: 0.5ex;
+	margin-right: 0.5ex;
+}
+
 td .field-container {
     max-height: 10em;
     overflow: hidden;

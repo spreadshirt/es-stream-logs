@@ -321,6 +321,12 @@ function renderSourceTable(source, formattedFields) {
                 "classList": "filter2",
                 "href": requireField(key),
             }, "🞸"));
+            buttons.appendChild(makeElement("input", {
+                "title": "Add query for this field",
+                "type": "checkbox",
+                "name": key,
+                "value": value,
+            }));
 
             row.appendChild(buttons);
 
@@ -335,8 +341,25 @@ function renderSourceTable(source, formattedFields) {
             row.appendChild(makeElement("td", {}, valueEl));
             tbody.appendChild(row);
         })
+    let form = makeElement("form", {
+        method: "GET",
+        action: "/logs"
+    });
+    // carry over common fields
+    ["index", "from", "to"].forEach((field) => {
+        form.appendChild(makeElement("input", {
+            type: "hidden",
+            name: field,
+            value: query[field].value,
+        }));
+    });
+    form.appendChild(makeElement("input", {
+        type: "submit",
+        value: "Search for selected fields",
+    }));
     table.appendChild(tbody);
-    return table;
+    form.appendChild(table);
+    return form;
 }
 
 function flattenObject(res, prefix, obj) {
