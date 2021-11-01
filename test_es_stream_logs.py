@@ -8,6 +8,10 @@ class ParseTimestampTestCase(unittest.TestCase):
         self.assertEqual(0, parse_timestamp("1970-01-01T00:00:00Z"))
         self.assertEqual(1635774591, parse_timestamp("2021-11-01T13:49:51Z"))
 
+    def test_date(self):
+        self.assertEqual(1635724800, parse_timestamp("2021-11-01"))
+        self.assertEqual(1910131200, parse_timestamp("2030-07-13"))
+
     def test_relative_minutes(self):
         now = time.time()
         times = ["now", "now-1m", "now-10m", "now-30m", "now-90m"]

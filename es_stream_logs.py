@@ -279,7 +279,10 @@ def parse_timestamp(timestamp):
     try:
         return time.mktime(time.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ'))
     except ValueError:
-        pass
+        try:
+            return time.mktime(time.strptime(timestamp, '%Y-%m-%d'))
+        except ValueError:
+            pass
 
     raise ValueError(f"could not parse timestamp '{timestamp}'")
 
