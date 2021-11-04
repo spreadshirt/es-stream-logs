@@ -341,22 +341,60 @@ function renderSourceTable(source, formattedFields) {
             row.appendChild(makeElement("td", {}, valueEl));
             tbody.appendChild(row);
         })
+
+    // render checkboxes next to each key + value to construct complex queries from existing logs in one go
     let form = makeElement("form", {
         method: "GET",
         action: "/logs"
     });
+
     // carry over common fields
-    ["index", "from", "to"].forEach((field) => {
+    let commonFields = ["index", "dc", "from", "to", "interval", "aggregation_terms", "aggregation_size", "percentiles_terms", "percentiles", "fields", "sort"];
+    commonFields.forEach((field) => {
+        if (!query[field]) {
+            return;
+        }
         form.appendChild(makeElement("input", {
             type: "hidden",
             name: field,
             value: query[field].value,
         }));
     });
+
     form.appendChild(makeElement("input", {
         type: "submit",
         value: "Search for selected fields",
     }));
+
+    // optionally keep existing filters
+    form.appendChild(document.createTextNode(" "));
+    form.appendChild(makeElement("label", {}, "Keep current filters:"));
+    form.appendChild(makeElement("input", {
+        classList: "keep-query",
+        type: "checkbox",
+        onchange: function(ev) {
+            let keepCurrent = ev.target.checked;
+            let existingValues = form.querySelectorAll(".field-existing");
+            existingValues.forEach((existingField) => existingField.disabled = !keepCurrent);
+        },
+    }));
+
+    // add existing fields as disabled="" fields, enable if keep-query is checked
+    for (let [key, value] of new FormData(query)) {
+        // don't duplicate fields
+        if (commonFields.includes(key)) {
+            continue;
+        }
+
+        form.appendChild(makeElement("input", {
+            classList: "field-existing",
+            type: "hidden",
+            name: key,
+            value: value,
+            disabled: true,
+        }));
+    }
+
     table.appendChild(tbody);
     form.appendChild(table);
     return form;
