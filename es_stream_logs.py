@@ -486,7 +486,7 @@ g.tooltip text {
 {% for bucket in buckets %}
 <g class="bucket tooltip">
     <a target="_parent" alt="Logs from {{ bucket.from_ts }} to {{ bucket.to_ts }}" xlink:href="{{ bucket.logs_url | e }}">
-    <rect fill="transparent" stroke="transparent" width="{{ bucket_width }}%" height="{{ bucket.height }}%" y="{{ 100-bucket.height }}%" x="{{ bucket.pos_x }}%"></rect>
+    <rect fill="transparent" stroke="transparent" width="{{ bucket_width }}%" height="100%" y="0%" x="{{ bucket.pos_x }}%"></rect>
     </a>
 
     <text x="{{ bucket.pos_x }}%" y="{{ bucket.label_y }}" text-anchor="{{ bucket.label_align }}">
