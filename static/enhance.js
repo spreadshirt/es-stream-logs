@@ -363,7 +363,7 @@ function renderSourceTable(source, formattedFields) {
 
     form.appendChild(makeElement("input", {
         type: "submit",
-        value: "Search for selected fields",
+        value: "Filter for selected fields",
     }));
 
     // optionally keep existing filters
