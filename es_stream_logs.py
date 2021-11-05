@@ -361,7 +361,6 @@ async def aggregation_svg(es, request: Request, query: Query):
         bucket_data = {
             "count": count,
             "key": bucket['key_as_string'],
-            "label": f"(count: {count})",
             "label_y": "15%" if is_internal else "50%",
             "label_align": label_align,
             "height": int((count / max_count) * 100),
@@ -378,19 +377,23 @@ async def aggregation_svg(es, request: Request, query: Query):
             bucket_data['sub_buckets'] = []
             for sub_bucket in sub_buckets:
                 sub_count = sub_bucket['doc_count']
+                sub_percentage = (sub_count / count) * 100
                 sub_height = max(0.25, int((sub_count / max_count) * 100))
                 offset_y -= sub_height
                 bucket_data['sub_buckets'].append({
+                    'key': sub_bucket['key'],
                     'count': sub_count,
+                    'percentage': f"{sub_percentage:.2f}%",
                     'height': sub_height,
                     'offset_y': offset_y,
                     'color': color_mapper.to_color(sub_bucket['key']),
                 })
-            bucket_data['label'] = "\n".join([f"{sub_bucket['key']}: {sub_bucket['doc_count']} ({(sub_bucket['doc_count'] / count) * 100 :.2f}%)" for sub_bucket in sub_buckets])
 
+        bucket_data['percentile_labels'] = []
         if query.percentiles_terms:
             percentiles = bucket[query.percentiles_terms]['values']
-            bucket_data['label'] += "\n\n" + " ".join([f"p{int(float(val)) if float(val).is_integer() else val}: {key or 0:.2f}" for val, key in percentiles.items()])
+            for val, key in percentiles.items():
+                bucket_data['percentile_labels'].append(f"p{int(float(val)) if float(val).is_integer() else val}: {key or 0:.2f}")
 
             bucket_data['percentiles'] = []
             scale_percentile = tinygraph.Scale(1000, (0, max_percentile), (0, 95))
@@ -441,10 +444,6 @@ rect {
     stroke-width: 1px;
 }
 
-text {
-    white-space: pre;
-}
-
 g text {
     display: none;
 }
@@ -464,8 +463,19 @@ g:hover text {
     <rect fill="{{ sub_bucket.color }}" stroke="{{ sub_bucket.color }}" width="{{ bucket_width }}%" height="{{ sub_bucket.height }}%" y="{{ sub_bucket.offset_y }}%" x="{{ bucket.pos_x }}%"></rect>
 {% endfor %}
     </a>
-    <text y="{{ bucket.label_y }}" x="{{ bucket.pos_x }}%" text-anchor="{{ bucket.label_align }}">{{ bucket.key | e }}
-{{ bucket.label | e }}</text>
+    <text x="{{ bucket.pos_x }}%" y="{{ bucket.label_y }}" text-anchor="{{ bucket.label_align }}">
+        <tspan x="{{ bucket.pos_x }}%" dy="1.5em">{{ bucket.key | e }}</tspan>
+        <tspan x="{{ bucket.pos_x }}%" dy="1.2em">{{ bucket.label | e }}</tspan>
+        {% for sub_bucket in bucket.sub_buckets %}
+        <tspan x="{{ bucket.pos_x }}%" dy="1.2em">{{ sub_bucket.key | e }}: {{ sub_bucket.count }} ({{ sub_bucket.percentage }})</tspan>
+        {% endfor %}
+        {% if bucket.percentile_labels %}
+        <tspan x="{{ bucket.pos_x }}%" dy="1.2em">&#160;</tspan>
+        {% for percentile_label in bucket.percentile_labels %}
+        <tspan x="{{ bucket.pos_x }}%" dy="1.2em">{{ percentile_label }}</tspan>
+        {% endfor %}
+        {% endif %}
+    </text>
 {% for percentile in bucket.percentiles %}
     <line stroke="black" x1="{{ bucket.pos_x }}%" x2="{{ bucket.pos_x + bucket_width }}%"
         y1="{{ percentile.pos_y }}%" y2="{{ percentile.pos_y }}%" />
@@ -476,8 +486,16 @@ g:hover text {
     <a target="_parent" alt="Logs from {{ bucket.from_ts }} to {{ bucket.to_ts }}" xlink:href="{{ bucket.logs_url | e }}">
     <rect fill="#00b2a5" stroke="#00b2a5" width="{{ bucket_width }}%" height="{{ bucket.height }}%" y="{{ 100-bucket.height }}%" x="{{ bucket.pos_x }}%"></rect>
     </a>
-    <text y="{{ bucket.label_y }}" x="{{ bucket.pos_x }}%" text-anchor="{{ bucket.label_align }}">{{ bucket.key | e }}
-{{ bucket.label | e }}</text>
+    <text x="{{ bucket.pos_x }}%" y="{{ bucket.label_y }}" text-anchor="{{ bucket.label_align }}">
+        <tspan x="{{ bucket.pos_x }}%" dy="1.5em">{{ bucket.key | e }}</tspan>
+        <tspan x="{{ bucket.pos_x }}%" dy="1.2em">{{ bucket.label | e }}</tspan>
+        {% if bucket.percentile_labels %}
+        <tspan x="{{ bucket.pos_x }}%" dy="1.2em">&#160;</tspan>
+        {% for percentile_label in bucket.percentile_labels %}
+        <tspan x="{{ bucket.pos_x }}%" dy="1.2em">{{ percentile_label }}</tspan>
+        {% endfor %}
+        {% endif %}
+    </text>
 {% for percentile in bucket.percentiles %}
     <line stroke="black" x1="{{ bucket.pos_x }}%" x2="{{ bucket.pos_x + bucket_width }}%"
         y1="{{ percentile.pos_y }}%" y2="{{ percentile.pos_y }}%" />
