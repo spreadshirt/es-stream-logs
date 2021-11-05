@@ -457,25 +457,19 @@ g.tooltip:hover text {
 <text x="10" y="14">{{ query_title | e }}</text>
 
 {% for bucket in buckets %}
-{% if bucket.aggregation_terms %}
 <g class="bucket">
+{% if bucket.aggregation_terms %}
 {% for sub_bucket in bucket.sub_buckets %}
     <rect fill="{{ sub_bucket.color }}" stroke="{{ sub_bucket.color }}" width="{{ bucket_width }}%" height="{{ sub_bucket.height }}%" y="{{ sub_bucket.offset_y }}%" x="{{ bucket.pos_x }}%"></rect>
 {% endfor %}
-{% for percentile in bucket.percentiles %}
-    <line stroke="black" x1="{{ bucket.pos_x }}%" x2="{{ bucket.pos_x + bucket_width }}%"
-        y1="{{ percentile.pos_y }}%" y2="{{ percentile.pos_y }}%" />
-{% endfor %}
-</g>
 {% else %}
-<g class="bucket">
     <rect fill="#00b2a5" stroke="#00b2a5" width="{{ bucket_width }}%" height="{{ bucket.height }}%" y="{{ 100-bucket.height }}%" x="{{ bucket.pos_x }}%"></rect>
+{% endif %}
 {% for percentile in bucket.percentiles %}
     <line stroke="black" x1="{{ bucket.pos_x }}%" x2="{{ bucket.pos_x + bucket_width }}%"
         y1="{{ percentile.pos_y }}%" y2="{{ percentile.pos_y }}%" />
 {% endfor %}
 </g>
-{% endif %}
 {% endfor %}
 
 {% if percentile_lines %}
