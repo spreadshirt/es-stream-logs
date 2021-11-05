@@ -452,6 +452,10 @@ g.tooltip:hover text {
     display: block;
     background-color: rgba(1, 1, 1, 0.3);
 }
+
+g.tooltip text {
+    pointer-events: none;
+}
 </style>
 
 <text x="10" y="14">{{ query_title | e }}</text>
