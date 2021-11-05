@@ -360,6 +360,7 @@ async def aggregation_svg(es, request: Request, query: Query):
             label_align = "end"
         bucket_data = {
             "count": count,
+            "label": f"count: {count}",
             "key": bucket['key_as_string'],
             "label_y": "15%" if is_internal else "50%",
             "label_align": label_align,
