@@ -444,12 +444,13 @@ rect {
     stroke-width: 1px;
 }
 
-g text {
+g.tooltip text {
     display: none;
 }
 
-g:hover text {
+g.tooltip:hover text {
     display: block;
+    background-color: rgba(1, 1, 1, 0.3);
 }
 </style>
 
@@ -458,11 +459,36 @@ g:hover text {
 {% for bucket in buckets %}
 {% if bucket.aggregation_terms %}
 <g class="bucket">
-    <a target="_parent" alt="Logs from {{ bucket.from_ts }} to {{ bucket.to_ts }}" xlink:href="{{ bucket.logs_url | e }}">
 {% for sub_bucket in bucket.sub_buckets %}
     <rect fill="{{ sub_bucket.color }}" stroke="{{ sub_bucket.color }}" width="{{ bucket_width }}%" height="{{ sub_bucket.height }}%" y="{{ sub_bucket.offset_y }}%" x="{{ bucket.pos_x }}%"></rect>
 {% endfor %}
+{% for percentile in bucket.percentiles %}
+    <line stroke="black" x1="{{ bucket.pos_x }}%" x2="{{ bucket.pos_x + bucket_width }}%"
+        y1="{{ percentile.pos_y }}%" y2="{{ percentile.pos_y }}%" />
+{% endfor %}
+</g>
+{% else %}
+<g class="bucket">
+    <rect fill="#00b2a5" stroke="#00b2a5" width="{{ bucket_width }}%" height="{{ bucket.height }}%" y="{{ 100-bucket.height }}%" x="{{ bucket.pos_x }}%"></rect>
+{% for percentile in bucket.percentiles %}
+    <line stroke="black" x1="{{ bucket.pos_x }}%" x2="{{ bucket.pos_x + bucket_width }}%"
+        y1="{{ percentile.pos_y }}%" y2="{{ percentile.pos_y }}%" />
+{% endfor %}
+</g>
+{% endif %}
+{% endfor %}
+
+{% if percentile_lines %}
+    <polyline id="percentile" fill="none" stroke="rgba(100, 100, 100, 0.7)" points="{{ percentile_lines[list(percentile_lines.keys())[-1]] }}" />
+{% endif %}
+
+<!-- tooltips need to be drawn after buckets to be own top ("implied" z-index for svg) -->
+{% for bucket in buckets %}
+<g class="bucket tooltip">
+    <a target="_parent" alt="Logs from {{ bucket.from_ts }} to {{ bucket.to_ts }}" xlink:href="{{ bucket.logs_url | e }}">
+    <rect fill="transparent" stroke="transparent" width="{{ bucket_width }}%" height="{{ bucket.height }}%" y="{{ 100-bucket.height }}%" x="{{ bucket.pos_x }}%"></rect>
     </a>
+
     <text x="{{ bucket.pos_x }}%" y="{{ bucket.label_y }}" text-anchor="{{ bucket.label_align }}">
         <tspan x="{{ bucket.pos_x }}%" dy="1.5em">{{ bucket.key | e }}</tspan>
         <tspan x="{{ bucket.pos_x }}%" dy="1.2em">{{ bucket.label | e }}</tspan>
@@ -476,37 +502,8 @@ g:hover text {
         {% endfor %}
         {% endif %}
     </text>
-{% for percentile in bucket.percentiles %}
-    <line stroke="black" x1="{{ bucket.pos_x }}%" x2="{{ bucket.pos_x + bucket_width }}%"
-        y1="{{ percentile.pos_y }}%" y2="{{ percentile.pos_y }}%" />
-{% endfor %}
 </g>
-{% else %}
-<g class="bucket">
-    <a target="_parent" alt="Logs from {{ bucket.from_ts }} to {{ bucket.to_ts }}" xlink:href="{{ bucket.logs_url | e }}">
-    <rect fill="#00b2a5" stroke="#00b2a5" width="{{ bucket_width }}%" height="{{ bucket.height }}%" y="{{ 100-bucket.height }}%" x="{{ bucket.pos_x }}%"></rect>
-    </a>
-    <text x="{{ bucket.pos_x }}%" y="{{ bucket.label_y }}" text-anchor="{{ bucket.label_align }}">
-        <tspan x="{{ bucket.pos_x }}%" dy="1.5em">{{ bucket.key | e }}</tspan>
-        <tspan x="{{ bucket.pos_x }}%" dy="1.2em">{{ bucket.label | e }}</tspan>
-        {% if bucket.percentile_labels %}
-        <tspan x="{{ bucket.pos_x }}%" dy="1.2em">&#160;</tspan>
-        {% for percentile_label in bucket.percentile_labels %}
-        <tspan x="{{ bucket.pos_x }}%" dy="1.2em">{{ percentile_label }}</tspan>
-        {% endfor %}
-        {% endif %}
-    </text>
-{% for percentile in bucket.percentiles %}
-    <line stroke="black" x1="{{ bucket.pos_x }}%" x2="{{ bucket.pos_x + bucket_width }}%"
-        y1="{{ percentile.pos_y }}%" y2="{{ percentile.pos_y }}%" />
 {% endfor %}
-</g>
-{% endif %}
-{% endfor %}
-
-{% if percentile_lines %}
-    <polyline id="percentile" fill="none" stroke="rgba(100, 100, 100, 0.7)" points="{{ percentile_lines[list(percentile_lines.keys())[-1]] }}" />
-{% endif %}
 
 </svg>
 """)
