@@ -460,6 +460,7 @@ g.tooltip text {
 
 <text x="10" y="14">{{ query_title | e }}</text>
 
+<g class="buckets">
 {% for bucket in buckets %}
 <g class="bucket">
 {% if bucket.aggregation_terms %}
@@ -475,6 +476,7 @@ g.tooltip text {
 {% endfor %}
 </g>
 {% endfor %}
+</g>
 
 {% if percentile_lines %}
     <polyline id="percentile" fill="none" stroke="rgba(100, 100, 100, 0.7)" points="{{ percentile_lines[list(percentile_lines.keys())[-1]] }}" />
@@ -503,6 +505,25 @@ g.tooltip text {
 </g>
 {% endfor %}
 
+<script>
+let dimensions = document.getRootNode().firstChild.getClientRects()[0];
+// mark first bucket as incomplete if it is outside of the document
+document.querySelectorAll("svg .buckets g.bucket:first-of-type rect").forEach((b) => {
+    if (b.getClientRects()[0].left &lt; dimensions.left) {
+        b.style.fillOpacity = 0.2;
+        b.style.strokeOpacity = 0.2;
+    }
+});
+
+// mark last bucket as incomplete if it is outside of the document
+document.querySelectorAll("svg .buckets g.bucket:last-of-type rect").forEach((b) => {
+    if (b.getClientRects()[0].right &gt; dimensions.right) {
+        b.style.fillOpacity = 0.2;
+        b.style.strokeOpacity = 0.2;
+    }
+});
+
+</script>
 </svg>
 """)
     return Response(content=template.render(list=list, width=width, height=height, query_title=query_title, bucket_width=bucket_width, buckets=buckets, percentile_lines=percentile_lines), media_type="image/svg+xml")
