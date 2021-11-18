@@ -95,6 +95,10 @@ td {
     vertical-align: top;
 }
 
+tr.row:hover, tr.source table tr:hover {
+    background-color: #f0f0f0;
+}
+
 .row td {
     max-width: 30em;
 }
