@@ -6,7 +6,8 @@ import string
 
 import elasticsearch
 
-from jinja2 import Template, escape
+from jinja2 import Template
+from markupsafe import escape
 
 from config import Config
 from query import Query

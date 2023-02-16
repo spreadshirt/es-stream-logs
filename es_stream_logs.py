@@ -24,7 +24,8 @@ import elasticsearch
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from jinja2 import escape, Template
+from jinja2 import Template
+from markupsafe import escape
 from starlette.authentication import AuthenticationError
 from starlette.datastructures import QueryParams
 from starlette.middleware.base import BaseHTTPMiddleware
