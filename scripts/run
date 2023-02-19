@@ -8,4 +8,4 @@ fi
 
 ./venv/bin/python3 -m pip install -r requirements.txt
 
-TZ=UTC FLASK_DEBUG=1 ./venv/bin/python3 es-stream-logs.py
+./venv/bin/uvicorn es_stream_logs:app --reload --port 3028 $@

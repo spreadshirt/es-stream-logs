@@ -6,10 +6,11 @@ window.setInterval(function() {
     if (numResultsEl) {
         let resultsTotal = parseInt(numResultsEl.dataset['resultsTotal']);
         let tookMs = parseInt(numResultsEl.dataset['tookMs']);
-        numHitsMsg += ` of ${resultsTotal.toLocaleString()} results (took ${tookMs}ms)`;
+        let tookEsMs = parseInt(numResultsEl.dataset['tookEsMs']);
+        numHitsMsg += ` of ${resultsTotal.toLocaleString()} results (took ${tookMs}ms total, es ${tookEsMs}ms)`;
     }
     numHitsEl.textContent = numHitsMsg;
-}, 1000);
+}, 500);
 
 var histogramContainer = document.getElementById("histogram_container");
 var histogramEl = document.getElementById("histogram");
@@ -88,16 +89,24 @@ let completions = {
         for (let i = this.rowsScanned; i < rows.length; i++) {
             let source = JSON.parse(rows[i].dataset['source']);
             let flatSource = flattenObject({}, "", source);
+            flatSource["aggregation_terms"] = null;
+            flatSource["percentiles_terms"] = null;
             Object.entries(flatSource).forEach(([field, value]) => {
                 if (!this.fieldValues.has(field)) {
                     this.fieldValues.set(field, new Set());
                     nameCompletionsEl.appendChild(makeElement("option", {
                         "value": field,
                     }, field));
+                    nameCompletionsEl.appendChild(makeElement("option", {
+                        "value": "-" + field,
+                    }, "-" + field));
                    if (typeof value == "string") {
                        nameCompletionsEl.appendChild(makeElement("option", {
                            "value": field + ".keyword",
                        }, field + ".keyword"));
+                       nameCompletionsEl.appendChild(makeElement("option", {
+                           "value": "-" + field + ".keyword",
+                       }, "-" + field + ".keyword"));
                    }
                 }
 
@@ -154,10 +163,20 @@ let newFieldEl = makeElement("span", {"classList": ["field-filter"]},
             "classList": ["field-value"],
             "style": "display: none",
             "onfocus": function(ev) {
+                // use field names as completion for aggregation and percentiles special fields
+                if (ev.target.name == "aggregation_terms" || ev.target.name == "percentiles_terms") {
+                    ev.target.setAttribute("list", "field-name-completion");
+                    return;
+                }
+
                 let completionsEl = ev.target.parentElement.querySelector("#field-value-completion");
                 completionsEl.innerHTML = "";
 
-                let values = completions.fieldValues.get(ev.target.name);
+                let fieldName = ev.target.name;
+                if (fieldName.startsWith("-")) {
+                    fieldName = fieldName.substr(1);
+                }
+                let values = completions.fieldValues.get(fieldName);
                 if (values) {
                     values.forEach((value) => {
                         completionsEl.appendChild(makeElement("option", {
@@ -185,7 +204,11 @@ document.body.addEventListener('click', function(ev) {
 
     if (ev.target.classList.contains("filter")) {
         let key = ev.target.parentElement.dataset['field'];
-        let value = ev.target.parentElement.firstElementChild.textContent;
+        // either span.field-container content or the first element of that for trace links
+        // and other elements that have generated more content.  bit of a hack.
+        let valueEl = ev.target.parentElement.firstElementChild.firstElementChild || ev.target.parentElement.firstElementChild;
+        let value = valueEl.textContent;
+        ev.preventDefault(); // sometimes needed to actually redirect?
         addFilter(key, value, ev.target.classList.contains("filter-exclude"), redirect = true);
         return;
     }
@@ -298,6 +321,12 @@ function renderSourceTable(source, formattedFields) {
                 "classList": "filter2",
                 "href": requireField(key),
             }, "🞸"));
+            buttons.appendChild(makeElement("input", {
+                "title": "Add query for this field",
+                "type": "checkbox",
+                "name": key,
+                "value": value,
+            }));
 
             row.appendChild(buttons);
 
@@ -312,8 +341,63 @@ function renderSourceTable(source, formattedFields) {
             row.appendChild(makeElement("td", {}, valueEl));
             tbody.appendChild(row);
         })
+
+    // render checkboxes next to each key + value to construct complex queries from existing logs in one go
+    let form = makeElement("form", {
+        method: "GET",
+        action: "/logs"
+    });
+
+    // carry over common fields
+    let commonFields = ["index", "dc", "from", "to", "interval", "aggregation_terms", "aggregation_size", "percentiles_terms", "percentiles", "fields", "sort"];
+    commonFields.forEach((field) => {
+        if (!query[field]) {
+            return;
+        }
+        form.appendChild(makeElement("input", {
+            type: "hidden",
+            name: field,
+            value: query[field].value,
+        }));
+    });
+
+    form.appendChild(makeElement("input", {
+        type: "submit",
+        value: "Filter for selected fields",
+    }));
+
+    // optionally keep existing filters
+    form.appendChild(document.createTextNode(" "));
+    form.appendChild(makeElement("label", {}, "Keep current filters:"));
+    form.appendChild(makeElement("input", {
+        classList: "keep-query",
+        type: "checkbox",
+        onchange: function(ev) {
+            let keepCurrent = ev.target.checked;
+            let existingValues = form.querySelectorAll(".field-existing");
+            existingValues.forEach((existingField) => existingField.disabled = !keepCurrent);
+        },
+    }));
+
+    // add existing fields as disabled="" fields, enable if keep-query is checked
+    for (let [key, value] of new FormData(query)) {
+        // don't duplicate fields
+        if (commonFields.includes(key)) {
+            continue;
+        }
+
+        form.appendChild(makeElement("input", {
+            classList: "field-existing",
+            type: "hidden",
+            name: key,
+            value: value,
+            disabled: true,
+        }));
+    }
+
     table.appendChild(tbody);
-    return table;
+    form.appendChild(table);
+    return form;
 }
 
 function flattenObject(res, prefix, obj) {

@@ -1,5 +1,7 @@
 """ This module handles query parsing and translation to elasticsearch. """
 
+import fastapi
+import starlette.datastructures
 import urllib.parse
 
 from config import Config
@@ -7,25 +9,22 @@ from config import Config
 ONLY_ONCE_ARGUMENTS = ["from", "to", "dc", "index", "interval"]
 
 
-def from_request_args(config, args):
+def from_request(config, request: fastapi.Request):
     """ Create query from request args. """
-    args = consolidate_args(args, ONLY_ONCE_ARGUMENTS)
-    return Query(config, **args)
+    return Query(config, **flatten_params(request.query_params, exceptions=ONLY_ONCE_ARGUMENTS))
 
 
-def consolidate_args(args, exceptions=None):
-    """ Consolidates arguments from a werkzeug.datastructures.MultiDict
-        into our internal comma-separated format. """
-    res = {}
-    for key, values in args.to_dict(flat=False).items():
+def flatten_params(query_params: starlette.datastructures.QueryParams, exceptions=None):
+    params = {}
+    for key in query_params.keys():
         if key in ["fmt"]:
             continue
 
         if exceptions and key in exceptions:
-            res[key] = values[-1]
+            params[key] = query_params.getlist(key)[-1]
         else:
-            res[key] = ','.join(values)
-    return res
+            params[key] = ",".join(query_params.getlist(key))
+    return params
 
 
 class Query:
@@ -47,7 +46,7 @@ class Query:
         self.percentiles = list(map(float, kwargs.pop("percentiles", "50,90,99").split(",")))
         self.percentiles_str = ",".join(map(lambda p: str(int(p) if p.is_integer() else p), self.percentiles))
 
-        self.max_results = kwargs.pop("max_results", 5000)
+        self.max_results = kwargs.pop("max_results", 500)
         if self.max_results != "all":
             self.max_results = int(self.max_results)
 
@@ -157,7 +156,7 @@ class Query:
             name: {
                 "date_histogram": {
                     "field": "@timestamp",
-                    "interval": interval,
+                    "fixed_interval": interval,
                     "time_zone": "UTC",
                     "min_doc_count": 1,
                 },
@@ -192,6 +191,8 @@ class Query:
         if self.percentiles_terms and not ("percentiles_terms", self.percentiles_terms) == without_param:
             params += [('percentiles_terms', self.percentiles_terms),
                        ('percentiles', ",".join(map(str, self.percentiles)))]
+        if self.sort != "asc":
+            params += [('sort', self.sort)]
         if self.interval != "auto":
             params += [('interval', self.interval)]
         if self.query_string:

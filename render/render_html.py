@@ -1,12 +1,13 @@
 """ Handles HTML rendering """
 
+import copy
 import json
 import string
 
 import elasticsearch
-from flask import escape
 
 from jinja2 import Template
+from markupsafe import escape
 
 from config import Config
 from query import Query
@@ -25,8 +26,11 @@ class HTMLRenderer:
         aggregation_url = self.query.as_url('/aggregation.svg')
         template = Template(r"""
 <!doctype html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ "".join(query.as_params()) | e }} - es-stream-logs</title>
     <link rel="stylesheet" href="/static/pretty.css" />
 </head>
 <body>
@@ -142,7 +146,7 @@ class HTMLRenderer:
 <tr>
     <td></td>
 {% for field, remove_link in fields.items() %}
-    <td class="field" data-class="field-{{ field }}">{{ field }} <a class="filter" href="{{ remove_link }}">✖</a></td>
+    <td class="field" data-class="field-{{ field }}">{{ field }} <a class="remove-link" href="{{ remove_link }}">✖</a></td>
 {% endfor %}
 </tr>
 </thead>
@@ -152,8 +156,9 @@ class HTMLRenderer:
         fields = {}
         for field in self.query.fields:
             escaped_field = escape(field)
-            remove_link = self.query.as_url('/logs') + "&fields=" + ",".join(filter(lambda f: f != field, self.query.fields))
-            fields[escaped_field] = remove_link
+            remove_query = copy.copy(self.query)
+            remove_query.fields_original = ",".join(filter(lambda f: f != field, self.query.fields))
+            fields[escaped_field] = remove_query.as_url('/logs')
 
         datacenters = {}
         for datacenter in self.config.endpoints.keys():
@@ -165,13 +170,10 @@ class HTMLRenderer:
 
         return template.render(map=map, str=str, len=len, min=min, aggregation_url=aggregation_url, fields=fields, datacenters=datacenters, query=self.query, indices=self.config.indices, sort_orders=sort_orders)
 
-    def num_results(self, results_total, took_ms):
+    def num_results(self, results_total, took_ms, took_es_ms):
         """ Render info about number of results. """
 
-        return f"""<tr id="num-results"
-    data-results-total="{results_total}"
-    data-took-ms="{took_ms}">
-</tr>"""
+        return f"""<tr id="num-results" data-results-total="{results_total}" data-took-ms="{took_ms}" data-took-es-ms="{took_es_ms}"></tr>"""
 
     def result(self, hit, source):
         """ Renders a single result. """
@@ -215,9 +217,9 @@ class HTMLRenderer:
     <td class="toggle-expand">+</td>
 {% for field, val in fields.items() %}
     <td data-field="{{ field | e }}" class="field-{{ field | e }}">
-        <div class="field-container">{{ val }}</div>
-        <a class="filter filter-include" title="Filter for results matching value" href="#">🔎</span>
-        <a class="filter filter-exclude" title="Exclude results matching value" href="#">🗑</span>
+        <span class="field-container">{{ val }}</span>
+        <a class="filter filter-include" title="Filter for results matching value" href="#">🔎</a>
+        <a class="filter filter-exclude" title="Exclude results matching value" href="#">🗑</a>
     </td>
 {% endfor %}
 </tr>

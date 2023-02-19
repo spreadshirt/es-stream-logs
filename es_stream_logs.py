@@ -7,47 +7,91 @@ query than Kibana, at least for ad-hoc queries.
 
 """
 
+import asyncio
+import base64
+import binascii
 from datetime import datetime
 import json
 import os
 import random
-import sys
 import time
+import traceback
 from urllib.parse import urlparse, parse_qsl
 
-from elasticsearch import Elasticsearch
+from dotenv import load_dotenv
+from elasticsearch import AsyncElasticsearch
 import elasticsearch
-
-from flask import Flask, Response, abort, redirect, request
-
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from jinja2 import Template
+from markupsafe import escape
+from starlette.authentication import AuthenticationError
+from starlette.datastructures import QueryParams
+from starlette.middleware.base import BaseHTTPMiddleware
 
 # project internal modules
 import config
 import kibana
-from query import Query, from_request_args
+from query import Query, from_request
 import render
 import tinygraph
 
-APP = Flask(__name__)
 
+class FixVivaldiQueryEncoding(BaseHTTPMiddleware):
+    """
+    Vivaldi does query encoding differently from other browsers, not
+    encoding semicolons anymore when they are set via forms and
+    other ways.
+
+    We work around this by re-encoding all query strings and forcing
+    the encoding of all semicolons in the query string manually
+    before the query string is then parsed into a datastructure.
+    """
+
+    def __init__(self, app) -> None:
+        super().__init__(app)
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        qs = request.scope['query_string']
+        if qs and b';' in qs:
+            qs = qs.decode("latin-1").replace(";", "%3B")
+            request.scope['query_string'] = qs.encode("latin-1")
+            request._query_params = QueryParams(qs)
+        response = await call_next(request)
+        return response
+
+
+app = FastAPI()
+app.add_middleware(FixVivaldiQueryEncoding)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+load_dotenv()
 ES_USER = os.environ.get('ES_USER', None)
 ES_PASSWORD = os.environ.get('ES_PASSWORD', None)
 
 
-@APP.route('/favicon.ico')
-def favicon_route():
+os.environ['TZ'] = 'UTC'
+time.tzset()
+
+
+favicon_static = StaticFiles(directory="static")
+
+
+@app.get('/favicon.ico')
+async def favicon_route(request: Request):
     """ Favicon (search glass). """
-    return APP.send_static_file('search.ico')
+    return await favicon_static.get_response("search.ico", request.scope)
 
 
-@APP.route('/')
-def index_route():
+@app.get('/', response_class=HTMLResponse)
+async def index_route():
     """ GET / """
 
     index = Template(r"""
 <!doctype html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <title>Stream logs!</title>
@@ -121,6 +165,7 @@ GET /logs   - stream logs from elasticsearch
 
     - <strong>aggregation_terms</strong>: count number of messages per term, e.g. `aggregation_terms=level` to aggregate per log level.
       each term gets a unique color.  some special colors are used for http status codes and log levels.
+      note that some fields require a '.keyword' suffix to work, e.g. `aggregation_terms=category.keyword`
     - <strong>aggregation_size</strong>: how many terms to aggregate, default is `5`.
 
     - <strong>percentiles_terms</strong>: collect percentiles for a field, e.g. `percentiles_terms=duration`.
@@ -144,7 +189,7 @@ GET /logs   - stream logs from elasticsearch
         To add fields to the default ones, use `fields=,additional-field`.
 
     - <strong>timeout</strong>: elasticsearch timeout in seconds, default is `10` seconds.
-    - <strong>max_results</strong>: maximum results to load in html view, default is `5000`.
+    - <strong>max_results</strong>: maximum results to load in html view, default is `500`.
 
     - <strong>fmt</strong>: "html" or "json"
       defaults to "html", "json" outputs one log entry per line as a json object</pre>
@@ -152,7 +197,8 @@ GET /logs   - stream logs from elasticsearch
 </body>
 </html>""")
 
-    return index.render(queries=CONFIG.queries, highlight_query=highlight_query)
+    config = await get_config()
+    return index.render(queries=config.queries, highlight_query=highlight_query)
 
 
 def highlight_query(query_url):
@@ -234,12 +280,15 @@ def parse_timestamp(timestamp):
     try:
         return time.mktime(time.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ'))
     except ValueError:
-        pass
+        try:
+            return time.mktime(time.strptime(timestamp, '%Y-%m-%d'))
+        except ValueError:
+            pass
 
     raise ValueError(f"could not parse timestamp '{timestamp}'")
 
 
-def aggregation_svg(es, query: Query):
+async def aggregation_svg(es, request: Request, query: Query):
     """ Execute aggregation query and render as an SVG. """
 
     is_internal = "/logs" in request.headers.get('Referer', '')
@@ -266,7 +315,7 @@ def aggregation_svg(es, query: Query):
 
     es_query = query.to_elasticsearch(query.from_timestamp)
     es_query["aggs"] = query.aggregation("num_results", interval)
-    resp = es.search(index=query.index, body=es_query, request_timeout=query.timeout)
+    resp = await es.search(index=query.index, body=es_query, request_timeout=query.timeout)
 
     total_count = 0
     max_count = 0
@@ -312,8 +361,8 @@ def aggregation_svg(es, query: Query):
             label_align = "end"
         bucket_data = {
             "count": count,
+            "label": f"count: {count}",
             "key": bucket['key_as_string'],
-            "label": f"(count: {count})",
             "label_y": "15%" if is_internal else "50%",
             "label_align": label_align,
             "height": int((count / max_count) * 100),
@@ -330,19 +379,23 @@ def aggregation_svg(es, query: Query):
             bucket_data['sub_buckets'] = []
             for sub_bucket in sub_buckets:
                 sub_count = sub_bucket['doc_count']
+                sub_percentage = (sub_count / count) * 100
                 sub_height = max(0.25, int((sub_count / max_count) * 100))
                 offset_y -= sub_height
                 bucket_data['sub_buckets'].append({
+                    'key': sub_bucket['key'],
                     'count': sub_count,
+                    'percentage': f"{sub_percentage:.2f}%",
                     'height': sub_height,
                     'offset_y': offset_y,
                     'color': color_mapper.to_color(sub_bucket['key']),
                 })
-            bucket_data['label'] = "\n".join([f"{sub_bucket['key']}: {sub_bucket['doc_count']} ({(sub_bucket['doc_count'] / count) * 100 :.2f}%)" for sub_bucket in sub_buckets])
 
+        bucket_data['percentile_labels'] = []
         if query.percentiles_terms:
             percentiles = bucket[query.percentiles_terms]['values']
-            bucket_data['label'] += "\n\n" + " ".join([f"p{int(float(val)) if float(val).is_integer() else val}: {key or 0:.2f}" for val, key in percentiles.items()])
+            for val, key in percentiles.items():
+                bucket_data['percentile_labels'].append(f"p{int(float(val)) if float(val).is_integer() else val}: {key or 0:.2f}")
 
             bucket_data['percentiles'] = []
             scale_percentile = tinygraph.Scale(1000, (0, max_percentile), (0, 95))
@@ -393,58 +446,89 @@ rect {
     stroke-width: 1px;
 }
 
-text {
-    white-space: pre;
-}
-
-g text {
+g.tooltip text {
     display: none;
 }
 
-g:hover text {
+g.tooltip:hover text {
     display: block;
+    background-color: rgba(1, 1, 1, 0.3);
+}
+
+g.tooltip text {
+    pointer-events: none;
 }
 </style>
 
 <text x="10" y="14">{{ query_title | e }}</text>
 
+<g class="buckets">
 {% for bucket in buckets %}
-{% if bucket.aggregation_terms %}
 <g class="bucket">
-    <a target="_parent" alt="Logs from {{ bucket.from_ts }} to {{ bucket.to_ts }}" xlink:href="{{ bucket.logs_url | e }}">
+{% if bucket.aggregation_terms %}
 {% for sub_bucket in bucket.sub_buckets %}
     <rect fill="{{ sub_bucket.color }}" stroke="{{ sub_bucket.color }}" width="{{ bucket_width }}%" height="{{ sub_bucket.height }}%" y="{{ sub_bucket.offset_y }}%" x="{{ bucket.pos_x }}%"></rect>
 {% endfor %}
-    </a>
-    <text y="{{ bucket.label_y }}" x="{{ bucket.pos_x }}%" text-anchor="{{ bucket.label_align }}">{{ bucket.key | e }}
-{{ bucket.label | e }}</text>
-{% for percentile in bucket.percentiles %}
-    <line stroke="black" x1="{{ bucket.pos_x }}%" x2="{{ bucket.pos_x + bucket_width }}%"
-        y1="{{ percentile.pos_y }}%" y2="{{ percentile.pos_y }}%" />
-{% endfor %}
-</g>
 {% else %}
-<g class="bucket">
-    <a target="_parent" alt="Logs from {{ bucket.from_ts }} to {{ bucket.to_ts }}" xlink:href="{{ bucket.logs_url | e }}">
     <rect fill="#00b2a5" stroke="#00b2a5" width="{{ bucket_width }}%" height="{{ bucket.height }}%" y="{{ 100-bucket.height }}%" x="{{ bucket.pos_x }}%"></rect>
-    </a>
-    <text y="{{ bucket.label_y }}" x="{{ bucket.pos_x }}%" text-anchor="{{ bucket.label_align }}">{{ bucket.key | e }}
-{{ bucket.label | e }}</text>
+{% endif %}
 {% for percentile in bucket.percentiles %}
     <line stroke="black" x1="{{ bucket.pos_x }}%" x2="{{ bucket.pos_x + bucket_width }}%"
         y1="{{ percentile.pos_y }}%" y2="{{ percentile.pos_y }}%" />
 {% endfor %}
 </g>
-{% endif %}
 {% endfor %}
+</g>
 
 {% if percentile_lines %}
     <polyline id="percentile" fill="none" stroke="rgba(100, 100, 100, 0.7)" points="{{ percentile_lines[list(percentile_lines.keys())[-1]] }}" />
 {% endif %}
 
+<!-- tooltips need to be drawn after buckets to be own top ("implied" z-index for svg) -->
+{% for bucket in buckets %}
+<g class="bucket tooltip">
+    <a target="_parent" alt="Logs from {{ bucket.from_ts }} to {{ bucket.to_ts }}" xlink:href="{{ bucket.logs_url | e }}">
+    <rect fill="transparent" stroke="transparent" width="{{ bucket_width }}%" height="100%" y="0%" x="{{ bucket.pos_x }}%"></rect>
+    </a>
+
+    <text x="{{ bucket.pos_x }}%" y="{{ bucket.label_y }}" text-anchor="{{ bucket.label_align }}">
+        <tspan x="{{ bucket.pos_x }}%" dy="1.5em">{{ bucket.key | e }}</tspan>
+        <tspan x="{{ bucket.pos_x }}%" dy="1.2em">{{ bucket.label | e }}</tspan>
+        {% for sub_bucket in bucket.sub_buckets %}
+        <tspan x="{{ bucket.pos_x }}%" dy="1.2em">{{ sub_bucket.key | e }}: {{ sub_bucket.count }} ({{ sub_bucket.percentage }})</tspan>
+        {% endfor %}
+        {% if bucket.percentile_labels %}
+        <tspan x="{{ bucket.pos_x }}%" dy="1.2em">&#160;</tspan>
+        {% for percentile_label in bucket.percentile_labels %}
+        <tspan x="{{ bucket.pos_x }}%" dy="1.2em">{{ percentile_label }}</tspan>
+        {% endfor %}
+        {% endif %}
+    </text>
+</g>
+{% endfor %}
+
+<script>
+let dimensions = document.getRootNode().firstChild.getClientRects()[0];
+// mark first bucket as incomplete if it is outside of the document
+document.querySelectorAll("svg .buckets g.bucket:first-of-type rect").forEach((b) => {
+    if (b.getClientRects()[0].left &lt; dimensions.left) {
+        b.style.fillOpacity = 0.2;
+        b.style.strokeOpacity = 0.2;
+    }
+});
+
+// mark last bucket as incomplete if it is outside of the document
+document.querySelectorAll("svg .buckets g.bucket:last-of-type rect").forEach((b) => {
+    if (b.getClientRects()[0].right &gt; dimensions.right) {
+        b.style.fillOpacity = 0.2;
+        b.style.strokeOpacity = 0.2;
+    }
+});
+
+</script>
 </svg>
 """)
-    return Response(template.render(list=list, width=width, height=height, query_title=query_title, bucket_width=bucket_width, buckets=buckets, percentile_lines=percentile_lines), content_type="image/svg+xml")
+    return Response(content=template.render(list=list, width=width, height=height, query_title=query_title, bucket_width=bucket_width, buckets=buckets, percentile_lines=percentile_lines), media_type="image/svg+xml")
 
 
 class ColorMapper():
@@ -491,51 +575,61 @@ class ColorMapper():
         return self.map[value]
 
 
-@APP.route('/aggregation.svg')
-def serve_aggregation():
+@app.get('/aggregation.svg')
+async def serve_aggregation(request: Request):
     """ Serve aggregation view. """
 
-    es_client, resp = es_client_from(request)
+    es_client, resp = await es_client_from(request)
     if resp:
         return resp
 
-    query = from_request_args(CONFIG, request.args)
-    return aggregation_svg(es_client, query)
+    query = from_request(await get_config(), request)
+    try:
+        return await aggregation_svg(es_client, request, query)
+    except Exception as ex:
+        traceback.print_exception(type(ex), ex, ex.__traceback__)
+        return Response(status_code=200, media_type="image/svg+xml", content=f"""<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" class="chart" width="1800" height="600" xmlns:xlink="http://www.w3.org/1999/xlink">
+<text x="10" y="14" stroke="red">{escape(type(ex).__name__)}: {escape(ex)}</text>
+</svg>
+""")
 
 
-@APP.route('/raw')
-def serve_raw():
+@app.get('/raw')
+async def serve_raw(request: Request):
     """ Serve raw query result from elasticsearch. """
 
-    es_client, resp = es_client_from(request)
+    es_client, resp = await es_client_from(request)
     if resp:
         return resp
 
-    query = from_request_args(CONFIG, request.args)
+    query = from_request(await get_config(), request)
     es_query = to_raw_es_query(query)
 
-    resp = es_client.search(index=query.index, body=es_query, request_timeout=query.timeout)
+    resp = await es_client.search(index=query.index, body=es_query, request_timeout=query.timeout)
 
-    return Response(json.dumps(resp, indent=2), content_type="application/json")
+    headers = {"Access-Control-Allow-Origin": "*"}
+    return Response(json.dumps(resp, indent=2), headers=headers, media_type="application/json")
 
 
-@APP.route('/query')
-def serve_query():
+@app.get('/query')
+async def serve_query(request: Request):
     """ Return the query that would be sent to elasticsearch. """
 
-    query = from_request_args(CONFIG, request.args)
+    query = from_request(await get_config(), request)
     es_query = to_raw_es_query(query)
 
-    return Response(json.dumps(es_query, indent=2), content_type="application/json")
+    headers = {"Access-Control-Allow-Origin": "*"}
+    return Response(json.dumps(es_query, indent=2), headers=headers, media_type="application/json")
 
 
-@APP.route('/kibana')
-def serve_kibana():
+@app.get('/kibana')
+def serve_kibana(request: Request):
     """ Parse a Kibana url and redirect to the es-stream-logs version. """
 
     kibana_url = request.args.get('url', None)
     if not kibana_url:
-        abort(400, "missing url parameter")
+        return Response(status_code=400, content="missing url parameter")
 
     # guess dc from url
     dc = None
@@ -547,14 +641,14 @@ def serve_kibana():
     if not dc:
         dc = request.args.get('dc', None)
     if not dc:
-        abort(400, "missing dc parameter")
+        return Response(status_code=400, content="missing dc parameter")
 
     try:
         query = kibana.parse(kibana_url)
     except Exception as ex:
-        abort(400, f"could not parse kibana url: {ex}")
+        return Response(status_code=400, content=f"could not parse kibana url: {ex}")
 
-    return redirect("/logs?" + query, code=303)
+    return RedirectResponse("/logs?" + query, status_code=303)
 
 
 def to_raw_es_query(query):
@@ -611,7 +705,7 @@ def collect_fields(cfg, fields, **kwargs):
     return fields
 
 
-def stream_logs(es, renderer, query: Query):
+async def stream_logs(es, renderer, query: Query):
     """ Contruct query and stream logs given the elasticsearch client and parameters. """
 
     last_timestamp = query.from_timestamp
@@ -626,15 +720,17 @@ def stream_logs(es, renderer, query: Query):
         try:
             query_count += 1
             es_query = query.to_elasticsearch(last_timestamp)
-            resp = es.search(index=query.index, body=es_query, request_timeout=query.timeout)
+            query_start = time.time()
+            resp = await es.search(index=query.index, body=es_query, request_timeout=query.timeout)
+            took_ms = int((time.time() - query_start) * 1000)
             if query_count == 1:
                 results_total = resp['hits']['total']['value']
-                took_ms = resp['took']
-                yield renderer.num_results(results_total, took_ms)
+                took_es_ms = resp['took']
+                yield renderer.num_results(results_total, took_ms, took_es_ms)
         except elasticsearch.ConnectionTimeout as ex:
             print(ex)
             yield renderer.error(ex, es_query)
-            time.sleep(1)
+            await asyncio.sleep(1)
             continue
         except elasticsearch.ElasticsearchException as ex:
             print(ex)
@@ -650,7 +746,7 @@ def stream_logs(es, renderer, query: Query):
         if query_count <= 1 and not resp['hits']['hits']:
             yield renderer.warning("Warning: No results matching query (Check details for query)",
                                    es_query)
-            time.sleep(1)
+            await asyncio.sleep(1)
             continue
 
         all_hits_seen = True
@@ -698,45 +794,24 @@ use &max_results=N or &max_results=all to see more results."""
         # print space to try and keep connection open
         yield " "
 
-        time.sleep(1)
+        await asyncio.sleep(1)
 
 
-def es_client_from(req):
-    """ Create elastic search client from request. """
-
-    if ES_USER is None or ES_PASSWORD is None:
-        if not req.authorization:
-            resp = Response('Could not verify your access level for that URL.\n'
-                            'You have to login with proper credentials',
-                            401,
-                            {'WWW-Authenticate': 'Basic realm="Login with  LDAP credentials"'})
-            return None, resp
-
-    datacenter = req.args.get('dc') or CONFIG.default_endpoint
-    if datacenter not in CONFIG.endpoints:
-        abort(400, f"unknown datacenter '{datacenter}'")
-
-    es_client = Elasticsearch([CONFIG.endpoints[datacenter].url],
-                              http_auth=(ES_USER or req.authorization.username,
-                                         ES_PASSWORD or req.authorization.password))
-
-    return es_client, None
-
-
-@APP.route('/logs')
-def serve_logs():
+@app.get('/logs')
+async def serve_logs(request: Request):
     """ Serve logs. """
-    es_client, resp = es_client_from(request)
+    es_client, resp = await es_client_from(request)
     if resp:
         return resp
 
     headers = {}
 
-    query = from_request_args(CONFIG, request.args)
+    config = await get_config()
+    query = from_request(config, request)
 
-    fmt = request.args.get("fmt", "html")
+    fmt = request.query_params.get("fmt", "html")
     if fmt == "html":
-        renderer = render.HTMLRenderer(CONFIG, query)
+        renderer = render.HTMLRenderer(config, query)
         content_type = "text/html"
         csp = [
             "default-src 'none'",
@@ -750,35 +825,56 @@ def serve_logs():
     elif fmt == "json":
         renderer = render.JSONRenderer()
         content_type = "application/json"
+        headers["Access-Control-Allow-Origin"] = "*"
     else:
         raise Exception(f"unknown output format '{fmt}'")
 
-    return Response(stream_logs(es_client, renderer, query), headers=headers,
-                    content_type=content_type + '; charset=utf-8')
+    return StreamingResponse(stream_logs(es_client, renderer, query),
+                             headers=headers,
+                             media_type=content_type)
 
 
-CONFIG = None
+async def es_client_from(request: Request):
+    """ Create elastic search client from request. """
+
+    username, password = ES_USER, ES_PASSWORD
+
+    if username is None or password is None:
+        if "Authorization" not in request.headers:
+            resp = Response(content='Could not verify your access level for that URL.\n'
+                            'You have to login with proper credentials',
+                            status_code=401,
+                            headers={'WWW-Authenticate': 'Basic realm="Login with  LDAP credentials"'})
+            return None, resp
+        else:
+            auth = request.headers["Authorization"]
+            try:
+                scheme, credentials = auth.split()
+                if scheme.lower() != 'basic':
+                    return
+                decoded = base64.b64decode(credentials).decode("ascii")
+            except (ValueError, UnicodeDecodeError, binascii.Error) as ex:
+                raise AuthenticationError('Invalid basic auth credentials', ex)
+
+            username, _, password = decoded.partition(":")
+
+    config = await get_config()
+    datacenter = request.query_params.get('dc') or config.default_endpoint
+    if datacenter not in config.endpoints:
+        return None, Response(status_code=400, content=f"unknown datacenter '{datacenter}'")
+
+    es_client = AsyncElasticsearch([config.endpoints[datacenter].url],
+                                   http_auth=(username, password),
+                                   http_compress=True)
+
+    return es_client, None
 
 
-def run_app():
-    """ Run application. """
+CONFIG = config.from_file(os.environ.get('CONFIG', 'config.json'))
 
-    config_file = 'config.json'
-    host = 'localhost'
-    port = 3028
-    if len(sys.argv) > 1:
-        config_file = sys.argv[1]
-    if len(sys.argv) > 2:
-        host = sys.argv[2]
-    if len(sys.argv) > 3:
-        port = int(sys.argv[3])
 
-    print(f"Loading config from '{config_file}'")
+async def get_config():
+    """ Loads config from scratch or cached. """
     global CONFIG
-    CONFIG = config.from_file(config_file)
 
-    APP.run(host=host, port=port, threaded=True)
-
-
-if __name__ == "__main__":
-    run_app()
+    return CONFIG

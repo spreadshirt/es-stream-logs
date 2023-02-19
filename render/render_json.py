@@ -12,7 +12,7 @@ class JSONRenderer:
     def start(self):
         return "["
 
-    def num_results(self, results_total, took_ms):
+    def num_results(self, results_total, took_ms, took_es_ms):
         return ""
 
     def result(self, hit, source):
