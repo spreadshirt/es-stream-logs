@@ -609,7 +609,7 @@ async def serve_raw(request: Request):
     resp = await es_client.search(index=query.index, body=es_query, request_timeout=query.timeout)
 
     headers = {"Access-Control-Allow-Origin": "*"}
-    return Response(json.dumps(resp, indent=2), headers=headers, media_type="application/json")
+    return Response(json.dumps(dict(resp), indent=2), headers=headers, media_type="application/json")
 
 
 @app.get('/query')
