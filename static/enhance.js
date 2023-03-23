@@ -1,5 +1,5 @@
 var numHitsEl = document.getElementById("stats-num-hits");
-window.setInterval(function() {
+var resultsRefresh = window.setInterval(function() {
     let resultsCount = document.querySelectorAll("tbody tr.row").length;
     numHitsMsg = `${resultsCount.toLocaleString()}`;
     let numResultsEl = document.getElementById("num-results");
@@ -8,6 +8,14 @@ window.setInterval(function() {
         let tookMs = parseInt(numResultsEl.dataset['tookMs']);
         let tookEsMs = parseInt(numResultsEl.dataset['tookEsMs']);
         numHitsMsg += ` of ${resultsTotal.toLocaleString()} results (took ${tookMs}ms total, es ${tookEsMs}ms)`;
+
+        if (resultsCount == 1 && resultsTotal == 1) {
+            expandSource(document.querySelector('tr.row > td.toggle-expand'));
+        }
+
+        if (resultsCount == resultsTotal) {
+            clearInterval(resultsRefresh);
+        }
     }
     numHitsEl.textContent = numHitsMsg;
 }, 500);
