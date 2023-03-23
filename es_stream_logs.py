@@ -791,6 +791,11 @@ use &max_results=N or &max_results=all to see more results."""
             yield renderer.end()
             return
 
+        # query for a single document, can only have one result, no need to wait for more
+        if '_id' in query.args:
+            yield renderer.end()
+            return
+
         # print space to try and keep connection open
         yield " "
 
