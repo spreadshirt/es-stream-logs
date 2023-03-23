@@ -225,7 +225,10 @@ class HTMLRenderer:
 </tr>
 <tr class="source source-hidden"><td colspan="{{ 1 + len_fields }}"></td></tr>
 """)
-        return template.render(source_json=json.dumps(hit['_source']), len_fields=len(self.query.fields),
+        source_with_meta = hit['_source']
+        source_with_meta['_id'] = hit['_id']
+        source_with_meta['_index'] = hit['_index']
+        return template.render(source_json=json.dumps(source_with_meta), len_fields=len(self.query.fields),
                                fields=fields, formatted_fields=json.dumps(formatted_fields))
 
     def end(self):
