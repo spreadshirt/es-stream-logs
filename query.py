@@ -120,6 +120,11 @@ class Query:
         timerange = {"range": {"@timestamp": {"gte": from_timestamp, "lt": self.to_timestamp}}}
         if self.sort == "desc" and self.from_timestamp != from_timestamp:
             timerange = {"range": {"@timestamp": {"gte": self.from_timestamp, "lt": from_timestamp}}}
+
+        # _id only exists once, look for it everywhere
+        if '_id' in self.args:
+            timerange = {"match_all": {}}
+
         query = {
             "size": num_results,
             "sort": [{"@timestamp": {"order": self.sort}}],
