@@ -9,6 +9,7 @@ import elasticsearch
 from jinja2 import Template
 from markupsafe import escape
 
+from color_mapper import ColorMapper
 from config import Config
 from query import Query
 
@@ -19,6 +20,7 @@ class HTMLRenderer:
     def __init__(self, config: Config, query: Query):
         self.config = config
         self.query = query
+        self.color_mapper = ColorMapper()
 
     def start(self):
         """ Render content at the "start", e.g. html head, table head, ... """
@@ -214,7 +216,7 @@ class HTMLRenderer:
 
         template = Template(r"""
 <tr class="row" data-source="{{ source_json | e }}" data-formatted-fields="{{ formatted_fields | e }}">
-    <td class="toggle-expand">+</td>
+    <td class="toggle-expand"{% if aggregation_color %} style="border-left: 0.5ex solid {{ aggregation_color }}; padding-left: 0.5ex;"{% endif %}>+</td>
 {% for field, val in fields.items() %}
     <td data-field="{{ field | e }}" class="field-{{ field | e }}">
         <span class="field-container">{{ val }}</span>
@@ -228,8 +230,16 @@ class HTMLRenderer:
         source_with_meta = hit['_source']
         source_with_meta['_id'] = hit['_id']
         source_with_meta['_index'] = hit['_index']
+        aggregation_color = None
+        if self.query.aggregation_terms:
+            try:
+                val = nested_get(hit['_source'], self.query.aggregation_terms.removesuffix('.keyword').split('.'))
+                aggregation_color = self.color_mapper.to_color(val)
+            except (IndexError, KeyError, ValueError):
+                pass
         return template.render(source_json=json.dumps(source_with_meta), len_fields=len(self.query.fields),
-                               fields=fields, formatted_fields=json.dumps(formatted_fields))
+                               fields=fields, formatted_fields=json.dumps(formatted_fields),
+                               aggregation_color=aggregation_color)
 
     def end(self):
         """ Renders end of results. """

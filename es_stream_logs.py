@@ -13,7 +13,6 @@ import binascii
 from datetime import datetime
 import json
 import os
-import random
 import time
 import traceback
 from urllib.parse import urlparse, parse_qsl
@@ -31,6 +30,7 @@ from starlette.datastructures import QueryParams
 from starlette.middleware.base import BaseHTTPMiddleware
 
 # project internal modules
+from color_mapper import ColorMapper
 import config
 import kibana
 from query import Query, from_request
@@ -531,50 +531,6 @@ document.querySelectorAll("svg .buckets g.bucket:last-of-type rect").forEach((b)
     return Response(content=template.render(list=list, width=width, height=height, query_title=query_title, bucket_width=bucket_width, buckets=buckets, percentile_lines=percentile_lines), media_type="image/svg+xml")
 
 
-class ColorMapper():
-    """ Maps values to colors, consistently. """
-
-    def __init__(self):
-        self.map = {}
-        self.static_map = {
-            "2xx": "green",
-            "3xx": "lightgreen",
-            "4xx": "yellow",
-            "5xx": "red",
-            "info": "green",
-            "warn": "yellow",
-            "warning": "yellow",
-            "error": "red",
-        }
-
-    def to_color(self, value):
-        """ Maps the given value to a color. """
-
-        if isinstance(value, int):
-            # special case for guessed http statuses
-            if 200 <= value < 300:
-                value = "2xx"
-            elif 300 <= value < 400:
-                value = "3xx"
-            elif 400 <= value < 500:
-                value = "4xx"
-            elif 500 <= value < 600:
-                value = "5xx"
-
-        if not isinstance(value, str):
-            value = str(value)
-
-        if value.lower() in self.static_map:
-            return self.static_map[value.lower()]
-
-        if value not in self.map:
-            rnd = random.Random(value)
-            random_color = f"hsl({rnd.randint(0, 360)}, 90%, 50%)"
-            self.map[value] = random_color
-
-        return self.map[value]
-
-
 @app.get('/aggregation.svg')
 async def serve_aggregation(request: Request):
     """ Serve aggregation view. """
@@ -822,7 +778,7 @@ async def serve_logs(request: Request):
             "default-src 'none'",
             "img-src 'self'",    # favicon
             "script-src 'self'",
-            "style-src 'self'",
+            "style-src 'self' 'unsafe-inline'",
             "object-src 'self'",  # histogram
             "frame-src 'self'",  # histogram in chromium
         ]
