@@ -291,7 +291,7 @@ class FieldFormatter(string.Formatter):
         val = kwargs.get(key)
         if isinstance(val, dict):
             return DotMap(val)
-        return val
+        return escape(val)
 
 
 class DotMap(dict):
@@ -301,4 +301,4 @@ class DotMap(dict):
         val = self.get(attr)
         if isinstance(val, dict):
             return DotMap(val)
-        return val
+        return escape(val)
