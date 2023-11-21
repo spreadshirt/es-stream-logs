@@ -688,7 +688,7 @@ async def stream_logs(es, renderer, query: Query):
             yield renderer.error(ex, es_query)
             await asyncio.sleep(1)
             continue
-        except elasticsearch.ElasticsearchException as ex:
+        except (elasticsearch.TransportError, elasticsearch.ApiError) as ex:
             print(ex)
             yield renderer.error(ex, es_query)
             return
