@@ -6,13 +6,6 @@ from typing import Dict, List
 
 
 @dataclass
-class Endpoint:
-    """ Configuration for an elasticsearch endpoint. """
-
-    url: str
-
-
-@dataclass
 class DefaultFields:
     """ Configuration for default fields. """
 
@@ -33,7 +26,7 @@ class Config:
     """ Encapsulates configuration, e.g. datacenters. """
 
     default_endpoint: str
-    endpoints: Dict[str, Endpoint]
+    endpoints: Dict[str, List[str]]
     indices: List[str]
 
     field_format: Dict[str, str]
@@ -42,8 +35,6 @@ class Config:
     queries: List[str]
 
     def __post_init__(self):
-        for key in self.endpoints:
-            self.endpoints[key] = Endpoint(**self.endpoints[key])
         self.default_fields = [DefaultFields(**df) for df in self.default_fields]
 
     def find_default_fields(self, **kwargs):

@@ -1,10 +1,10 @@
 {
   "default_endpoint": "local",
   "endpoints": {
-    "local": {"url": "http://localhost:9200"},
-    "dc3": {"url": "https://elasticsearch-dc3.example.com:443"},
-    "dc1": {"url": "https://elasticsearch-dc1.example.com:443"},
-    "dc2": {"url": "https://elasticsearch-dc2.example.com:443"}
+    "local": ["http://localhost:9200", "http://localhost:9201"],
+    "dc3": ["https://elasticsearch-dc3.example.com:443"],
+    "dc1": ["https://elasticsearch-dc1.example.com:443"],
+    "dc2": ["https://elasticsearch-dc2.example.com:443"]
   },
   "indices": [
     "application-*",
