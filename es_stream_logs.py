@@ -377,8 +377,10 @@ async def aggregation_svg(es, request: Request, query: Query):
             sub_buckets = bucket[query.aggregation_terms]['buckets']
             sub_buckets.sort(key=lambda bucket: bucket['key'])
             bucket_data['sub_buckets'] = []
+            sub_sum = 0
             for sub_bucket in sub_buckets:
                 sub_count = sub_bucket['doc_count']
+                sub_sum += sub_count
                 sub_percentage = (sub_count / count) * 100
                 sub_height = max(0.25, int((sub_count / max_count) * 100))
                 offset_y -= sub_height
@@ -389,6 +391,18 @@ async def aggregation_svg(es, request: Request, query: Query):
                     'height': sub_height,
                     'offset_y': offset_y,
                     'color': color_mapper.to_color(sub_bucket['key']),
+                })
+
+            # add buckets for "non-aggregated" values (i.e. missing the field that is being aggregated on)
+            if sub_sum < count:
+                amount = count - sub_sum
+                bucket_data['sub_buckets'].insert(0, {
+                    'key': f"no value for {query.aggregation_terms}",
+                    'count': amount,
+                    'percentage': f"{(amount/max_count) * 100:.2f}%",
+                    'height': int((amount / max_count) * 100),
+                    'offset_y': offset_y - int((amount / max_count) * 100),
+                    'color': '#dddddd',
                 })
 
         bucket_data['percentile_labels'] = []
