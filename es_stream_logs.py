@@ -399,7 +399,7 @@ async def aggregation_svg(es, request: Request, query: Query):
                 bucket_data['sub_buckets'].insert(0, {
                     'key': f"no value for {query.aggregation_terms}",
                     'count': amount,
-                    'percentage': f"{(amount/max_count) * 100:.2f}%",
+                    'percentage': f"{(amount / max_count) * 100:.2f}%",
                     'height': int((amount / max_count) * 100),
                     'offset_y': offset_y - int((amount / max_count) * 100),
                     'color': '#dddddd',
@@ -418,7 +418,7 @@ async def aggregation_svg(es, request: Request, query: Query):
                     continue
                 pos_y = 100 - scale_percentile.map(value)
                 if width_scale:
-                    percentile_lines[percentile] += f" {width_scale.map(bucket_data['pos_x']+bucket_width/2)},{pos_y/100 * height}"
+                    percentile_lines[percentile] += f" {width_scale.map(bucket_data['pos_x'] + bucket_width / 2)},{pos_y / 100 * height}"
 
                 percentile = float(percentile)
                 pretty_percentile = int(percentile) if percentile.is_integer() else percentile

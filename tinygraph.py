@@ -91,5 +91,5 @@ def pretty_duration(duration_s: int):
     elif duration_s < 24 * HOUR:
         fmt = f"{duration_s // HOUR}h"
     else:
-        fmt = f"{duration_s // (24*HOUR)}d"
+        fmt = f"{duration_s // (24 * HOUR)}d"
     return fmt
