@@ -1,7 +1,8 @@
+import datetime
 import time
 import unittest
 
-from es_stream_logs import parse_timestamp
+from es_stream_logs import parse_doc_timestamp, parse_timestamp
 
 
 class ParseTimestampTestCase(unittest.TestCase):
@@ -44,3 +45,20 @@ class ParseTimestampTestCase(unittest.TestCase):
     def test_epoch_millis(self):
         self.assertEqual(0, parse_timestamp("0"))
         self.assertEqual(1635774591, parse_timestamp("1635774591000"))
+
+
+class ParseDocTimestampTestCase(unittest.TestCase):
+    def test_full(self):
+        self.assertEqual(datetime.datetime(1970, 1, 1, 0, 0),
+                         parse_doc_timestamp('1970-01-01T00:00:00Z'))
+        self.assertEqual(datetime.datetime(1970, 1, 1, 0, 0),
+                         parse_doc_timestamp('1970-01-01T00:00:00.000Z'))
+        self.assertEqual(datetime.datetime(1970, 1, 1, 0, 0, 0, 123000),
+                         parse_doc_timestamp('1970-01-01T00:00:00.123Z'))
+        self.assertEqual(datetime.datetime(1970, 1, 1, 0, 0, 0, 123456),
+                         parse_doc_timestamp('1970-01-01T00:00:00.123456Z'))
+
+    def test_invalid(self):
+        self.assertRaises(ValueError, lambda: parse_doc_timestamp("not a timestamp"))
+
+        self.assertRaises(ValueError, lambda: parse_doc_timestamp('1970-01-01T00:00:00+01:00'))
