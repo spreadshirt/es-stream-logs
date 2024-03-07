@@ -643,6 +643,14 @@ def to_raw_es_query(query):
 
 def parse_doc_timestamp(timestamp: str):
     """ Parse the timestamp of an elasticsearch document. """
+
+    sub_second_split = timestamp.split(sep=".", maxsplit=1)
+    if len(sub_second_split) > 1 and len(sub_second_split[1]) > 7:
+        # sub second part too long, e.g. .1234567Z and strptime supports only
+        # up to 6 places (plus 'Z' timezone part)
+        sub_second_shortened = sub_second_split[1][:6] + sub_second_split[1][-1]
+        timestamp = sub_second_split[0] + "." + sub_second_shortened
+
     try:
         parsed = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
     except ValueError:

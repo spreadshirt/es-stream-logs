@@ -58,6 +58,12 @@ class ParseDocTimestampTestCase(unittest.TestCase):
         self.assertEqual(datetime.datetime(1970, 1, 1, 0, 0, 0, 123456),
                          parse_doc_timestamp('1970-01-01T00:00:00.123456Z'))
 
+    def test_too_long(self):
+        self.assertEqual(datetime.datetime(1970, 1, 1, 0, 0, 0, 123456),
+                         parse_doc_timestamp('1970-01-01T00:00:00.123456999Z'))
+        self.assertEqual(datetime.datetime(1970, 1, 1, 0, 0, 0, 123456),
+                         parse_doc_timestamp('1970-01-01T00:00:00.1234569999999999999999Z'))
+
     def test_invalid(self):
         self.assertRaises(ValueError, lambda: parse_doc_timestamp("not a timestamp"))
 
