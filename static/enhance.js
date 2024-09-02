@@ -320,7 +320,7 @@ function renderSourceTable(source, formattedFields) {
                 "href": addFilter(key, value, true),
             }, "🗑"));
             buttons.appendChild(makeElement("a", {
-                "title": "Add field",
+                "title": "Display field in table",
                 "classList": "filter2",
                 "href": addField(key),
             }, "✶"));
