@@ -50,7 +50,7 @@ window.addEventListener("DOMContentLoaded", function() {
 
 var histogramLinks = document.querySelector("#histogram_links");
 var markdownButton = document.createElement("a");
-markdownButton.textContent = "🗍";
+markdownButton.textContent = "📄";
 markdownButton.title = "copy as markdown";
 markdownButton.href = "#";
 markdownButton.onclick = function(ev) {
@@ -320,15 +320,15 @@ function renderSourceTable(source, formattedFields) {
                 "href": addFilter(key, value, true),
             }, "🗑"));
             buttons.appendChild(makeElement("a", {
-                "title": "Add field",
+                "title": "Display field in table",
                 "classList": "filter2",
                 "href": addField(key),
-            }, "🗍"));
+            }, "✶"));
             buttons.appendChild(makeElement("a", {
                 "title": "Require field to be present",
                 "classList": "filter2",
                 "href": requireField(key),
-            }, "🞸"));
+            }, "❗"));
             buttons.appendChild(makeElement("input", {
                 "title": "Add query for this field",
                 "type": "checkbox",
