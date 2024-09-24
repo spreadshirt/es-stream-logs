@@ -365,7 +365,7 @@ async def aggregation_svg(es, request: Request, query: Query):
             "key": bucket['key_as_string'],
             "label_y": "15%" if is_internal else "50%",
             "label_align": label_align,
-            "height": int((count / max_count) * 100),
+            "height": max(0.25, int((count / max_count) * 100)) if count > 0 else 0,
             "pos_x": scale.map(bucket['key']),
             "from_ts": from_ts,
             "to_ts": to_ts,
