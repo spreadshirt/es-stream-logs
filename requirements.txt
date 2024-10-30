@@ -32,5 +32,5 @@ urllib3==2.2.2
 uvicorn==0.30.6
 uvloop==0.20.0
 websockets==10.4
-Werkzeug==3.0.4
+Werkzeug==3.0.6
 yarl==1.9.4
