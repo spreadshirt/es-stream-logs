@@ -338,7 +338,7 @@ function renderSourceTable(source, formattedFields) {
 
             row.appendChild(buttons);
 
-            let valueEl = makeElement("pre", {}, (value === null ? "null" : value.toString()));
+            let valueEl = makeElement("pre", {}, (value === null ? "null" : (typeof value === "object" ? JSON.stringify(value) : value.toString())));
 
             if (key in formattedFields) {
                 valueEl = makeElement("pre", {}, "");
@@ -410,7 +410,7 @@ function renderSourceTable(source, formattedFields) {
 
 function flattenObject(res, prefix, obj) {
     Object.entries(obj).forEach(([key, value]) => {
-        if (!!value && value.constructor == Object) {
+        if (!!value && value.constructor == Object && Object.keys(value).length > 0) {
             flattenObject(res, (prefix ? prefix + "." : "") + key, value);
         } else {
             res[(prefix ? prefix + "." : "") + key] = value;
