@@ -18,7 +18,7 @@ h11==0.14.0
 httptools==0.6.1
 idna==3.7
 itsdangerous==2.1.2
-Jinja2==3.1.4
+Jinja2==3.1.5
 MarkupSafe==2.1.2
 multidict==6.0.5
 pydantic==2.8.2
