@@ -14,7 +14,7 @@ elastic-transport==8.15.0
 elasticsearch==8.15.0
 fastapi==0.115.4
 frozenlist==1.4.1
-h11==0.14.0
+h11==0.16.0
 httptools==0.6.1
 idna==3.7
 itsdangerous==2.1.2
