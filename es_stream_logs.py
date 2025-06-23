@@ -858,6 +858,4 @@ CONFIG = config.from_file(os.environ.get('CONFIG', 'config.json'))
 
 async def get_config():
     """ Loads config from scratch or cached. """
-    global CONFIG
-
     return CONFIG
