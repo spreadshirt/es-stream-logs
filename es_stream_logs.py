@@ -70,6 +70,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 load_dotenv()
 ES_USER = os.environ.get('ES_USER', None)
 ES_PASSWORD = os.environ.get('ES_PASSWORD', None)
+ES_CUSTOM_CA_CERTS = os.environ.get('ES_CUSTOM_CA_CERTS', None)
 
 
 os.environ['TZ'] = 'UTC'
@@ -847,6 +848,7 @@ async def es_client_from(request: Request):
         return None, Response(status_code=400, content=f"unknown datacenter '{datacenter}'")
 
     es_client = AsyncElasticsearch(config.endpoints[datacenter],
+                                   ca_certs=ES_CUSTOM_CA_CERTS,
                                    http_auth=(username, password),
                                    http_compress=True)
 
