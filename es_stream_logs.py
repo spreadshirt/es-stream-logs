@@ -509,7 +509,7 @@ g.tooltip text {
     <text x="{{ bucket.pos_x }}%" y="{{ bucket.label_y }}" text-anchor="{{ bucket.label_align }}">
         <tspan x="{{ bucket.pos_x }}%" dy="1.5em">{{ bucket.key | e }}</tspan>
         <tspan x="{{ bucket.pos_x }}%" dy="1.2em">{{ bucket.label | e }}</tspan>
-        {% for sub_bucket in bucket.sub_buckets %}
+        {% for sub_bucket in (bucket.sub_buckets | sort(attribute='count') | reverse) %}
         <tspan x="{{ bucket.pos_x }}%" dy="1.2em">{{ sub_bucket.key | e }}: {{ sub_bucket.count }} ({{ sub_bucket.percentage }})</tspan>
         {% endfor %}
         {% if bucket.percentile_labels %}
