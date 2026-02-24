@@ -1,4 +1,4 @@
 deployment/target
 __pycache__/
-/venv/
+.venv/
 /.env

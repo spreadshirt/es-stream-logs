@@ -2,10 +2,4 @@
 
 set -eu
 
-if [ ! -d "venv" ]; then
-	python3 -m venv venv
-fi
-
-./venv/bin/python3 -m pip install -r requirements.txt
-
-./venv/bin/uvicorn es_stream_logs:app --reload --port 3028 $@
+uv run uvicorn es_stream_logs:app --reload --port 3028 $@
