@@ -25,10 +25,8 @@ There are several ways to run es-stream-logs:
 
 1. `docker-compose`
     - run `docker-compose up`
-2. or using Python's `venv`
-    - run `python -m venv venv`
-    - install dependencies with `./venv/bin/pip install -r requirements.txt`
-    - start the server with `./venv/bin/python es-stream-logs.py`
+2. or using [uv](https://docs.astral.sh/uv/)
+    - start the server with `uv run uvicorn es_stream_logs:app --port 3028`
     - you also need an elasticsearch instance, which you can run using
       docker: `docker run -p 9200:9200 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.8.1`
 
