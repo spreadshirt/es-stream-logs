@@ -78,7 +78,7 @@ def time_increment(start_s: int, stop_s: int, count: int):
         if initial_interval < interval:
             return interval
 
-    return ValueError("could not find appropriate interval")
+    raise ValueError("could not find appropriate interval")
 
 
 def pretty_duration(duration_s: int):
