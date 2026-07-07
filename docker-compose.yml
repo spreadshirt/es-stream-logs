@@ -1,16 +1,22 @@
-version: '3'
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
     environment:
       discovery.type: single-node
       xpack.security.enabled: "false"
+      cluster.routing.allocation.disk.watermark.low: 1gb
+      cluster.routing.allocation.disk.watermark.high: 1gb
+      cluster.routing.allocation.disk.watermark.flood_stage: 1gb
+      ES_JAVA_OPTS: -Xms2g -Xmx2g
     ports:
       - "9200:9200"
+    tmpfs:
+      - /usr/share/elasticsearch/data
   ui:
-    image: spreadshirt/es-stream-logs
+    image: ghcr.io/spreadshirt/es-stream-logs
+    build: .
     depends_on:
       - elasticsearch
     ports:
       - "3028:3028"
-    command: sh -c "sed -i 's/localhost:9200/elasticsearch:9200/' /app/config.json && python /app/es-stream-logs.py /app/config.json 0.0.0.0 3028"
+    command: sh -c "sed -i 's/localhost:9200/elasticsearch:9200/' /app/config.json && uvicorn es_stream_logs:app --host 0.0.0.0 --port 3028 --workers 10"
