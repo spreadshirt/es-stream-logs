@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 import json
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -33,6 +33,8 @@ class Config:
     default_fields: List[DefaultFields]
 
     queries: List[str]
+
+    default_index: Optional[str] = "application-*"
 
     def __post_init__(self):
         self.default_fields = [DefaultFields(**df) for df in self.default_fields]

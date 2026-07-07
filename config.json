@@ -6,6 +6,7 @@
     "dc1": ["https://elasticsearch-dc1.example.com:443"],
     "dc2": ["https://elasticsearch-dc2.example.com:443"]
   },
+  "default_index": "logs-*",
   "indices": [
     "application-*",
     "cdn-*",

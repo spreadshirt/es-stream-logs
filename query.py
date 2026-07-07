@@ -33,7 +33,7 @@ class Query:
 
     def __init__(self, config: Config, **kwargs):
         self.datacenter = kwargs.pop("dc", config.default_endpoint)
-        self.index = kwargs.pop("index", "application-*")
+        self.index = kwargs.pop("index", config.default_index)
 
         self.from_timestamp = kwargs.pop("from", "now-15m")
         self.to_timestamp = kwargs.pop("to", "now")
